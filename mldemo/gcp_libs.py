@@ -1,4 +1,5 @@
 from typing import List
+import re
 
 from google.api_core.client_options import ClientOptions
 from google.cloud import discoveryengine_v1 as discoveryengine
@@ -22,6 +23,23 @@ gcp_settings = dict(
 # r.summary.summary_with_metadata.references[0].title
 # r.summary.summary_with_metadata.references[0].document
 
+def clean_summary_text(summary_text: str) -> str:
+    # [1], [1,2] のような参照リンクを削除する（ひとまず）
+    # ex: あああ[1] いいい [5] ううう -> あああ いいい うううう
+    return ''.join(re.split(r'\[[0-9, ]+\]', summary_text))
+
+
+def clean_snippet_text(snippet_text: str) -> list:
+    # snippet テキストをきれいにする
+    # 1) &nbsp; -> 半角スペース
+    # 2) <b>AAA</b> の部分を太字にするための処理
+    # - <b>,</b>のいずれかで split するので、奇数配列目を太字にする処理を入れる
+    # 太字がある場合、list の長さが 2 以上になるので、spans=[] で接続する
+    tmp = snippet_text.replace("&nbsp;", " ")
+    # m = re.findall(r'<b>.+?<\/b>', tmp)
+    return re.split(r'<\/*b>', tmp)
+
+
 def parse_result(
     search_response: List[discoveryengine.SearchResponse]
 ) -> dict:
@@ -32,6 +50,7 @@ def parse_result(
     # サマリー、メタ情報
     response['meta'] = dict(
         summary=search_response.summary.summary_text,
+        # summary_references=list(search_response.summary.summary_with_metadata.references),
         total_size=search_response.total_size,
         attribution_token=search_response.attribution_token,
         next_page_token=search_response.next_page_token,
@@ -111,7 +130,8 @@ def exec_search(
     request = discoveryengine.SearchRequest(
         serving_config=serving_config,
         query=search_query,
-        page_size=10,
+        # 検索結果の件数（ページング大変なので多めにしておくのが吉？）
+        page_size=20,
         content_search_spec=content_search_spec,
         query_expansion_spec=discoveryengine.SearchRequest.QueryExpansionSpec(
             condition=discoveryengine.SearchRequest.QueryExpansionSpec.Condition.AUTO,
