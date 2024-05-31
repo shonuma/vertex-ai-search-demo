@@ -1,5 +1,6 @@
 from typing import List
 import re
+import html
 
 from google.api_core.client_options import ClientOptions
 from google.cloud import discoveryengine_v1 as discoveryengine
@@ -35,7 +36,8 @@ def clean_snippet_text(snippet_text: str) -> list:
     # 2) <b>AAA</b> の部分を太字にするための処理
     # - <b>,</b>のいずれかで split するので、奇数配列目を太字にする処理を入れる
     # 太字がある場合、list の長さが 2 以上になるので、spans=[] で接続する
-    tmp = snippet_text.replace("&nbsp;", " ")
+    tmp = html.unescape(snippet_text)
+    tmp = tmp.replace("\xa0", " ")
     # m = re.findall(r'<b>.+?<\/b>', tmp)
     return re.split(r'<\/*b>', tmp)
 
