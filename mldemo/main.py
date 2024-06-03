@@ -2,9 +2,26 @@ import flet as ft
 
 from gcp_libs import exec_search, parse_result, clean_summary_text, clean_snippet_text
 
-card_count = 0
-
 def main(page: ft.Page):
+    def add_main():
+        page.add(
+            ft.Row(
+                [eyecatch_image],
+                alignment=ft.MainAxisAlignment.CENTER,
+            )
+        )
+        page.add(
+            ft.Row(
+                [
+                    text_field,
+                    ft.Column(
+                        controls=[button_field],
+                        alignment=ft.VerticalAlignment.END,
+                    )
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+            )
+        )
     def open_url(e):
         gs_url = e.control.data
         url = 'https://storage.cloud.google.com/{}'.format(gs_url.split('//')[1])
@@ -12,17 +29,16 @@ def main(page: ft.Page):
         page.launch_url(url)
 
     def add_clicked(e):
-        global card_count
         # クエリが空の場合は空振りさせる
         if not text_field.value:
             return
         text_field.disabled = True
         button_field.disabled = True
         page.update()
-        for _ in range(0, card_count):
+        for _ in range(0, len(page.controls)):
             page.controls.pop()
+        add_main()
         page.update()
-        card_count = 1
         loading_image = ft.Image(
             src=f"/gemini_loading.gif",
             width=720,
@@ -130,7 +146,6 @@ def main(page: ft.Page):
                     alignment=ft.MainAxisAlignment.CENTER
                 )
             )
-            card_count += 1
 
         page.scroll = "always"
 
@@ -163,27 +178,10 @@ def main(page: ft.Page):
         center_title=False,
         bgcolor=ft.colors.SURFACE_VARIANT,
     )
-    page.add(
-        ft.Row(
-            [eyecatch_image],
-            alignment=ft.MainAxisAlignment.CENTER,
-        )
-    )
-    page.add(
-        ft.Row(
-            [
-                text_field,
-                ft.Column(
-                    controls=[button_field],
-                    alignment=ft.VerticalAlignment.END,
-                )
-            ],
-            alignment=ft.MainAxisAlignment.CENTER,
-        )
-    )
+    add_main()
 
 ft.app(
     target=main,
     assets_dir="assets",
-    view=ft.AppView.WEB_BROWSER
+    # view=ft.AppView.WEB_BROWSER
 )
