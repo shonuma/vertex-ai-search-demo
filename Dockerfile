@@ -1,6 +1,12 @@
 FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED True
+# Google Cloud プロジェクトのID
+ENV PROJECT_ID google_cloud_project_id
+# 検索エンジンのロケーション
+ENV VERTEX_AI_SEARCH_LOCATION global
+# 検索エンジンのID
+ENV VERTEX_AI_SEARCH_ENGINE_ID engine_id
 
 ENV APP_HOME /app
 WORKDIR $APP_HOME
@@ -8,5 +14,4 @@ COPY . ./
 
 RUN bash setup.sh
 RUN pip install --no-cache-dir -r requirements.txt
-RUN ./.env.sh
 CMD exec bash run.sh
