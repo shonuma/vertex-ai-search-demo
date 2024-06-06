@@ -1,6 +1,7 @@
 from typing import List
 import re
 import html
+import os
 
 from google.api_core.client_options import ClientOptions
 from google.cloud import discoveryengine_v1 as discoveryengine
