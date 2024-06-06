@@ -5,11 +5,15 @@ import html
 from google.api_core.client_options import ClientOptions
 from google.cloud import discoveryengine_v1 as discoveryengine
 
+
 # プロジェクトID / ロケーション / 検索エンジンの ID を指定する
 gcp_settings = dict(
-    project_id="automldemo4hisol",
-    location="global", # Values: "global", "us", "eu"
-    engine_id="1_1716775403001",
+    # project_id="automldemo4hisol",
+    project_id=os.environ['PROJECT_ID'],
+    location=os.environ['VERTEX_AI_SEARCH_LOCATION'],
+    # location="global", # Values: "global", "us", "eu"
+    engine_id=os.environ['VERTEX_AI_SEARCH_ENGINE_ID'],
+    # engine_id="1_1716775403001",
 )
 
 

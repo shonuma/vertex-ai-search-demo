@@ -2,6 +2,7 @@ import flet as ft
 
 from gcp_libs import exec_search, parse_result, clean_summary_text, clean_snippet_text
 
+
 def main(page: ft.Page):
     def add_main():
         page.add(
@@ -25,7 +26,6 @@ def main(page: ft.Page):
     def open_url(e):
         gs_url = e.control.data
         url = 'https://storage.cloud.google.com/{}'.format(gs_url.split('//')[1])
-        # page.launch_url("https://www.google.com")
         page.launch_url(url)
 
     def add_clicked(e):
@@ -84,7 +84,7 @@ def main(page: ft.Page):
                     ]
                 ),
                 width=800,
-                padding=20
+                padding=15
             )
         )
         page.controls.append(

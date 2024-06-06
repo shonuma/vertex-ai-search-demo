@@ -8,4 +8,5 @@ COPY . ./
 
 RUN bash setup.sh
 RUN pip install --no-cache-dir -r requirements.txt
+RUN bash .env
 CMD exec bash run.sh
