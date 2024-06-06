@@ -2,11 +2,11 @@ FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED True
 # Google Cloud プロジェクトのID
-ENV PROJECT_ID google_cloud_project_id
+ENV PROJECT_ID automldemo4hiso
 # 検索エンジンのロケーション
 ENV VERTEX_AI_SEARCH_LOCATION global
 # 検索エンジンのID
-ENV VERTEX_AI_SEARCH_ENGINE_ID engine_id
+ENV VERTEX_AI_SEARCH_ENGINE_ID 1_1716775403001
 
 ENV APP_HOME /app
 WORKDIR $APP_HOME
