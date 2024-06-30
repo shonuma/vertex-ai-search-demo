@@ -64,19 +64,30 @@ def parse_result(
     )
 
     # 検索結果
-    for r in search_response.results:
-        response['result'].append(
-            dict(
-                # タイトル（PDF名)
-                title=r.document.derived_struct_data['title'],
-                # リンク先
-                link=r.document.derived_struct_data['link'],
-                # スニペット文字列
-                snippet=r.document.derived_struct_data["snippets"][0]["snippet"],
-                # スニペットを取得できたかどうか
-                snippet_status=r.document.derived_struct_data["snippets"][0]["snippet_status"],
+    try:
+        for r in search_response.results:
+            title = r.document.struct_data['title']
+            # title が存在しない場合、ファイル名を利用する
+            if not title:
+                title = r.document.derived_struct_data.get('link', 'https://example.com').split('/')[-1].split('.')[0]
+
+            response['result'].append(
+                dict(
+                    # タイトル
+                    # title=r.document.struct_data.get('title', 'No title'),
+                    title=title,
+                    # リンク先
+                    link=r.document.derived_struct_data.get('link', 'https://example.com'),
+                    # スニペット文字列
+                    snippet=r.document.derived_struct_data["snippets"][0]["snippet"],
+                    # スニペットを取得できたかどうか
+                    snippet_status=r.document.derived_struct_data["snippets"][0]["snippet_status"],
+                )
             )
-        )
+
+    except Exception as e:
+        # 何らかのエラーが起きたら何も返さない
+        print(e)
     return response
 
 
@@ -105,6 +116,20 @@ def exec_search(
     # Optional: Configuration options for search
     # Refer to the `ContentSearchSpec` reference for all supported fields:
     # https://cloud.google.com/python/docs/reference/discoveryengine/latest/google.cloud.discoveryengine_v1.types.SearchRequest.ContentSearchSpec
+
+    preamble = '''
+Given the dialogue between a user and a helpful assistant, along with relevant search results, craft a final response for the assistant in Japanese. The response should:
+
+Utilize all pertinent information from the search results.
+Avoid introducing any new information not found in the search results.
+Quote directly from the search results whenever possible, using the exact same wording.
+Not exceed 20 sentences in total length.
+Be formatted as a bulleted list, with each item beginning with a "🌳  " symbol and followed by a line break.
+Be written in a casual, easy-to-understand style that aligns with Google's web-based Japanese language.
+Emphasize key points using bold text.
+Include hyperlinks to company websites when company names are mentioned.
+'''[1:-1]
+
     content_search_spec = discoveryengine.SearchRequest.ContentSearchSpec(
         # For information about snippets, refer to:
         # https://cloud.google.com/generative-ai-app-builder/docs/snippets
@@ -121,10 +146,11 @@ def exec_search(
             ignore_non_summary_seeking_query=True,
             model_prompt_spec=discoveryengine.SearchRequest.ContentSearchSpec.SummarySpec.ModelPromptSpec(
                 # preamble="please show the answer format in an ordered list"
+                preamble=preamble,
                 # preamble="Simple English"
-                preamble="YOUR_CUSTOM_PROMPT"
+                # preamble="YOUR_CUSTOM_PROMPT"
                 # preamble="詳細に説明して"
-                # preamble="小学生でもわかりやすいように説明して"
+                # preamble="Please answer in English"
             ),
             model_spec=discoveryengine.SearchRequest.ContentSearchSpec.SummarySpec.ModelSpec(
                 version="stable",
