@@ -1,9 +1,19 @@
 import flet as ft
 
-from gcp_libs import exec_search, parse_result, clean_summary_text, clean_snippet_text
+from gcp_libs import (add_entry, clean_snippet_text, clean_summary_text,
+                      exec_search, get_histories, parse_result)
 
 
 def main(page: ft.Page):
+    # Theme
+    page.theme_mode = ft.ThemeMode.LIGHT
+    # Font
+    page.fonts = {
+       "NotoSansJp": "/fonts/NotoSansJP-SemiBold.ttf"
+    }
+    page.theme = ft.Theme(font_family="NotoSansJp")
+    print(get_histories())
+
     def add_main():
         page.add(
             ft.Row(
@@ -23,6 +33,7 @@ def main(page: ft.Page):
                 alignment=ft.MainAxisAlignment.CENTER,
             )
         )
+
     def open_url(e):
         gs_url = e.control.data
         url = 'https://storage.cloud.google.com/{}'.format(gs_url.split('//')[1])
@@ -40,7 +51,7 @@ def main(page: ft.Page):
         add_main()
         page.update()
         loading_image = ft.Image(
-            src=f"/gemini_loading.gif",
+            src="/gemini_loading.gif",
             width=720,
             height=400,
             fit=ft.ImageFit.CONTAIN,
@@ -54,11 +65,14 @@ def main(page: ft.Page):
         page.update()
         page.controls.pop()
 
-        search_response = exec_search(search_query=text_field.value)
+        search_query = text_field.value
+
+        search_response = exec_search(search_query=search_query)
         pd_result = parse_result(search_response)
         print(pd_result)
         # 要約
         spans = []
+
         txts = clean_snippet_text(
             clean_summary_text(pd_result['meta']['summary'])
         )
@@ -66,22 +80,23 @@ def main(page: ft.Page):
             if i % 2 == 0:
                 spans.append(ft.TextSpan(txts[i]))
             else:
-                ft.TextSpan(
-                    txts[i],
-                    ft.TextStyle(weight=ft.FontWeight.BOLD),
+                spans.append(
+                    ft.TextSpan(
+                        txts[i],
+                        ft.TextStyle(weight=ft.FontWeight.BOLD),
+                    )
                 )
 
         summary_card = ft.Card(
-            color=ft.colors.INDIGO_500,
+            # color=ft.colors.GREEN_50,
+            # bgcolor=ft.colors.TRANSPARENT,
             content=ft.Container(
-                content=ft.Column(
-                    [
-                        ft.ListTile(
-                            leading=ft.Icon(ft.icons.EDIT_DOCUMENT, color="blue"),
-                            title=ft.Text("要約"),
-                            subtitle=ft.Text(spans=spans)
-                        )
-                    ]
+                bgcolor=ft.colors.GREEN_50,
+                content=ft.Markdown(
+                    pd_result['meta']['summary'],
+                    selectable=True,
+                    extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
+                    on_tap_link=lambda e: page.launch_url(e.data),
                 ),
                 width=800,
                 padding=15
@@ -146,7 +161,7 @@ def main(page: ft.Page):
                     alignment=ft.MainAxisAlignment.CENTER
                 )
             )
-
+        add_entry(search_query)
         page.scroll = "always"
 
         text_field.disabled = False
@@ -166,7 +181,7 @@ def main(page: ft.Page):
         height=32,
     )
     eyecatch_image = ft.Image(
-        src=f"/eyecatch.png",
+        src="/eyecatch.png",
         width=384,
         height=384,
         fit=ft.ImageFit.CONTAIN,
@@ -179,6 +194,7 @@ def main(page: ft.Page):
         bgcolor=ft.colors.SURFACE_VARIANT,
     )
     add_main()
+
 
 ft.app(
     target=main,

@@ -1,33 +1,57 @@
-from typing import List
-import re
 import html
 import os
+import re
+import time
+from typing import List
 
 from google.api_core.client_options import ClientOptions
 from google.cloud import discoveryengine_v1 as discoveryengine
+from google.cloud import firestore
 
+client = firestore.Client(project=os.environ['FIRESTORE_PROJECT_ID'])
 
 # プロジェクトID / ロケーション / 検索エンジンの ID を指定する
 gcp_settings = dict(
-    # project_id="automldemo4hisol",
     project_id=os.environ['PROJECT_ID'],
     location=os.environ['VERTEX_AI_SEARCH_LOCATION'],
-    # location="global", # Values: "global", "us", "eu"
     engine_id=os.environ['VERTEX_AI_SEARCH_ENGINE_ID'],
-    # engine_id="1_1716775403001",
 )
 
 
-# memo
-# r.results[0].document.derived_struct_data["title"]: タイトル
-# r.results[0].document.derived_struct_data["link"]: ドキュメントのリンク
-# r.results[0].document.derived_struct_data["snippets"][0]["snippet"]: スニペット（検索結果に出てくる文字列）
-# r.results[0].document.derived_struct_data["snippets"][0]["snippet_status"]: スニペットを取得できたかどうか
-# r.summary.summary_text: 要約のテキスト
-# r.summary.summary_with_metadata.summary: 要約のテキスト（メタデータ込）
-# r.summary.summary_with_metadata.references (要約の引用元, インデックスは0開始だけど要約のリンクは1開始なので注意)
-# r.summary.summary_with_metadata.references[0].title
-# r.summary.summary_with_metadata.references[0].document
+def get_histories(count: int) -> [str]:
+    # クエリの履歴を取得する
+    # isPickUp: true - 優先的に取得する
+    # isUserQuery: true - ユーザのクエリ（直近 N 件）
+    picked_ups = []
+    user_queries = []
+
+    query = client.collection("Queries").where(
+        filter=firestore.FieldFilter("isPickedUp", "==", True)
+    ).limit(1000)
+    for entry in query.stream():
+        picked_ups.append(entry.to_dict())
+
+    query = client.collection("Queries").where(
+        filter=firestore.FieldFilter("isUserQuery", "==", True)
+    ).order_by(
+        "createdAt", direction=firestore.Query.DESCENDING
+    ).limit(1000)
+    for entry in query.stream():
+        user_queries.append(entry.to_dict())
+    return picked_ups + user_queries
+
+
+def add_entry(query: str):
+    # クエリをストレージに格納する
+    data = {
+        'isUserQuery': True,
+        'query': query,
+        'createdAt': int(time.time()),
+    }
+    client.collection("Queries").document().set(
+        data
+    )
+
 
 def clean_summary_text(summary_text: str) -> str:
     # [1], [1,2] のような参照リンクを削除する（ひとまず）
@@ -64,30 +88,32 @@ def parse_result(
     )
 
     # 検索結果
-    try:
-        for r in search_response.results:
-            title = r.document.struct_data['title']
-            # title が存在しない場合、ファイル名を利用する
-            if not title:
-                title = r.document.derived_struct_data.get('link', 'https://example.com').split('/')[-1].split('.')[0]
+    # try:
+    for r in search_response.results:
+        struct_data = r.document.struct_data
+        if not struct_data:
+            title = r.document.derived_struct_data.get(
+                'link', 'https://example.com').split('/')[-1].split('.')[0]
+        else:
+            title = struct_data.get('title')
 
-            response['result'].append(
-                dict(
-                    # タイトル
-                    # title=r.document.struct_data.get('title', 'No title'),
-                    title=title,
-                    # リンク先
-                    link=r.document.derived_struct_data.get('link', 'https://example.com'),
-                    # スニペット文字列
-                    snippet=r.document.derived_struct_data["snippets"][0]["snippet"],
-                    # スニペットを取得できたかどうか
-                    snippet_status=r.document.derived_struct_data["snippets"][0]["snippet_status"],
-                )
+        response['result'].append(
+            dict(
+                # タイトル
+                # title=r.document.struct_data.get('title', 'No title'),
+                title=title,
+                # リンク先
+                link=r.document.derived_struct_data.get('link', 'https://example.com'),
+                # スニペット文字列
+                snippet=r.document.derived_struct_data["snippets"][0]["snippet"],
+                # スニペットを取得できたかどうか
+                snippet_status=r.document.derived_struct_data["snippets"][0]["snippet_status"],
             )
+        )
 
-    except Exception as e:
-        # 何らかのエラーが起きたら何も返さない
-        print(e)
+    # except Exception as e:
+    #     # 何らかのエラーが起きたら何も返さない
+    #     print(e)
     return response
 
 
@@ -117,19 +143,6 @@ def exec_search(
     # Refer to the `ContentSearchSpec` reference for all supported fields:
     # https://cloud.google.com/python/docs/reference/discoveryengine/latest/google.cloud.discoveryengine_v1.types.SearchRequest.ContentSearchSpec
 
-    preamble = '''
-Given the dialogue between a user and a helpful assistant, along with relevant search results, craft a final response for the assistant in Japanese. The response should:
-
-Utilize all pertinent information from the search results.
-Avoid introducing any new information not found in the search results.
-Quote directly from the search results whenever possible, using the exact same wording.
-Not exceed 20 sentences in total length.
-Be formatted as a bulleted list, with each item beginning with a "🌳  " symbol and followed by a line break.
-Be written in a casual, easy-to-understand style that aligns with Google's web-based Japanese language.
-Emphasize key points using bold text.
-Include hyperlinks to company websites when company names are mentioned.
-'''[1:-1]
-
     content_search_spec = discoveryengine.SearchRequest.ContentSearchSpec(
         # For information about snippets, refer to:
         # https://cloud.google.com/generative-ai-app-builder/docs/snippets
@@ -140,20 +153,19 @@ Include hyperlinks to company websites when company names are mentioned.
         # https://cloud.google.com/generative-ai-app-builder/docs/get-search-summaries
         summary_spec=discoveryengine.SearchRequest.ContentSearchSpec.SummarySpec(
             # サマリーで利用する結果の数
-            summary_result_count=5,
+            summary_result_count=3,
             include_citations=True,
             ignore_adversarial_query=True,
             ignore_non_summary_seeking_query=True,
             model_prompt_spec=discoveryengine.SearchRequest.ContentSearchSpec.SummarySpec.ModelPromptSpec(
-                # preamble="please show the answer format in an ordered list"
-                preamble=preamble,
-                # preamble="Simple English"
-                # preamble="YOUR_CUSTOM_PROMPT"
-                # preamble="詳細に説明して"
-                # preamble="Please answer in English"
+                # preamble=preamble,
+                preamble="Given the dialogue between a user and a helpful assistant, along with relevant search results, craft a final response for the assistant in Japanese. The response should:\n\nUtilize all pertinent information from the search results.\nAvoid introducing any new information not found in the search results.\nQuote directly from the search results whenever possible, using the exact same wording.\nNot exceed 20 sentences in total length.\nBe formatted as a bulleted list, with each item beginning with a \"🌳 \" symbol.\nBe written in a casual, easy-to-understand style that aligns with Google's web-based Japanese language.\nEmphasize key points using bold text.\nInclude hyperlinks to company websites when company names are mentioned.",
             ),
+            language_code="ja",
+            # extractive_content_spec=
             model_spec=discoveryengine.SearchRequest.ContentSearchSpec.SummarySpec.ModelSpec(
-                version="stable",
+                # version="stable",
+                version="preview",
             ),
         ),
     )
@@ -163,8 +175,8 @@ Include hyperlinks to company websites when company names are mentioned.
     request = discoveryengine.SearchRequest(
         serving_config=serving_config,
         query=search_query,
-        # 検索結果の件数（ページング大変なので多めにしておくのが吉？）
-        page_size=20,
+        # 検索結果の件数
+        page_size=5,
         content_search_spec=content_search_spec,
         query_expansion_spec=discoveryengine.SearchRequest.QueryExpansionSpec(
             condition=discoveryengine.SearchRequest.QueryExpansionSpec.Condition.AUTO,
@@ -176,5 +188,4 @@ Include hyperlinks to company websites when company names are mentioned.
 
     response = client.search(request)
     # print(response)
-
     return response

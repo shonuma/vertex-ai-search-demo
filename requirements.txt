@@ -1,4 +1,1 @@
-Flask==3.0.3
-google-cloud-discoveryengine==0.11.12
-flet==0.22.1
-hypercorn==0.17.3
+-r requirements/common.txt
