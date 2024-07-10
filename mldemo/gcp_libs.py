@@ -33,7 +33,7 @@ def get_histories(count: int = 10) -> [str]:
         count -= 1
 
     query = client.collection("Queries").order_by(
-        "createdAt", direction=firestore.Query.DESCENDING
+        "updatedAt", direction=firestore.Query.DESCENDING
     ).limit(1000)
     for entry in query.stream():
         dict_ = entry.to_dict()
@@ -57,9 +57,15 @@ def add_or_update_entry(search_query: str):
     # すでにあるクエリなら更新する
     if id:
         # エントリが存在していれば、1 回検索されたということ
-        count = col.document(id).get().to_dict().get('count', 1)
+        dict_ = col.document(id).get().to_dict()
+        count = dict_.get('count', 1)
         count += 1
-        col.document(id).update({'count': count})
+        col.document(id).update(
+            dict(
+                count=count,
+                updatedAt=int(time.time()),
+            )
+        )
         return
     # クエリをストレージに格納する
     # TODO: base 64 して入れたほうが確実なので後でやる
@@ -67,6 +73,7 @@ def add_or_update_entry(search_query: str):
         'isUserQuery': True,
         'query': search_query,
         'createdAt': int(time.time()),
+        'updatedAt': int(time.time()),
         'count': 0,
     }
     print(data)

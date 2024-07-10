@@ -12,22 +12,53 @@ def main(page: ft.Page):
        "NotoSansJp": "/fonts/NotoSansJP-SemiBold.ttf"
     }
     page.theme = ft.Theme(font_family="NotoSansJp")
+    page.scroll = "always"
 
-    def add_main():
-        page.add(
+    def remove_all():
+        for _ in range(0, len(page.controls)):
+            page.controls.pop()
+
+    def render_main():
+        # History
+        histories = get_histories()
+        histories_container = []
+        for i, history in enumerate(histories):
+            q = history['query']
+            histories_container.append(
+                ft.Container(
+                    content=ft.Text(q),
+                    margin=10,
+                    padding=10,
+                    alignment=ft.alignment.center,
+                    bgcolor=ft.colors.GREEN_50,
+                    width=96,
+                    height=96,
+                    border_radius=10,
+                    ink=True,
+                    on_click=click_history
+                )
+            )
+            if i == 2:
+                break
+        histories_area = ft.Row(
+            histories_container,
+            alignment=ft.MainAxisAlignment.CENTER,
+        )
+        # メインコンポーネントの描画
+        page.controls.append(
             ft.Row(
                 [eyecatch_image],
                 alignment=ft.MainAxisAlignment.CENTER,
             )
         )
-        page.add(
+        page.controls.append(
             ft.Row(
                 [eyecache_developed_on_gcp],
                 alignment=ft.MainAxisAlignment.CENTER,
             )
         )
-        page.add(histories_area)
-        page.add(
+        page.controls.append(histories_area)
+        page.controls.append(
             ft.Row(
                 [
                     text_field,
@@ -45,17 +76,22 @@ def main(page: ft.Page):
         url = 'https://storage.cloud.google.com/{}'.format(gs_url.split('//')[1])
         page.launch_url(url)
 
+    def click_history(e):
+        history_query = e.control.content.value
+        text_field.value = history_query
+        page.update()
+        add_clicked(e)
+
     def add_clicked(e):
         # クエリが空の場合は空振りさせる
         if not text_field.value:
             return
         text_field.disabled = True
         button_field.disabled = True
+        remove_all()
+        render_main()
         page.update()
-        for _ in range(0, len(page.controls)):
-            page.controls.pop()
-        add_main()
-        page.update()
+        # Loading の gif を表示
         loading_image = ft.Image(
             src="/gemini_loading.gif",
             width=720,
@@ -69,13 +105,14 @@ def main(page: ft.Page):
             )
         )
         page.update()
-        page.controls.pop()
-
+        # 検索実行
         search_query = text_field.value
-
         search_response = exec_search(search_query=search_query)
         pd_result = parse_result(search_response)
         print(pd_result)
+        # 最終的にコントロールに追加するリスト
+        stacked_controls = []
+
         # 要約
         spans = []
 
@@ -108,7 +145,7 @@ def main(page: ft.Page):
                 padding=15
             )
         )
-        page.controls.append(
+        stacked_controls.append(
             ft.Row(
                 [summary_card],
                 alignment=ft.MainAxisAlignment.CENTER
@@ -161,19 +198,26 @@ def main(page: ft.Page):
                     padding=10,
                 ),
             )
-            page.controls.append(
+            stacked_controls.append(
                 ft.Row(
                     [card],
                     alignment=ft.MainAxisAlignment.CENTER
                 )
             )
         add_or_update_entry(search_query)
-        page.scroll = "always"
+
+        # 再描画
+        remove_all()
+        render_main()
+        for _ in stacked_controls:
+            page.controls.append(_)
 
         text_field.disabled = False
         button_field.disabled = False
+        # 表示
         page.update()
 
+    # Text Field
     text_field = ft.TextField(
         hint_text="検索ワードを入力してください",
         prefix_icon=ft.icons.SEARCH,
@@ -182,44 +226,25 @@ def main(page: ft.Page):
         bgcolor=ft.colors.GREY_50,
         width=480,
     )
+    # Button
     button_field = ft.ElevatedButton(
         "検索",
         on_click=add_clicked,
         height=32,
     )
+    # Eyecatch images
     eyecatch_image = ft.Image(
         src="/case_study_forest_eyecatch_02.png",
         width=320,
         height=320,
         fit=ft.ImageFit.CONTAIN,
     )
-    histories = get_histories()
-    histories_container = []
-    for i, history in enumerate(histories):
-        histories_container.append(
-            ft.Container(
-                content=ft.Text(history['query']),
-                margin=10,
-                padding=10,
-                alignment=ft.alignment.center,
-                bgcolor=ft.colors.GREEN_50,
-                width=96,
-                height=96,
-                border_radius=10,
-                on_click=lambda e: print(e.__dict__)
-            )
-        )
-        if i == 2:
-            break
-    histories_area = ft.Row(
-        histories_container,
-        alignment=ft.MainAxisAlignment.CENTER,
-    )
     eyecache_developed_on_gcp = ft.Image(
         src="/developed_on_google_cloud.png",
         width=400,
         height=74,
     )
+    # 上部のメニューバー
     page.appbar = ft.AppBar(
         leading=ft.Icon(ft.icons.FOREST, color=ft.colors.GREEN_ACCENT_700),
         leading_width=24,
@@ -227,7 +252,8 @@ def main(page: ft.Page):
         center_title=False,
         bgcolor=ft.colors.SURFACE_VARIANT,
     )
-    add_main()
+    render_main()
+    page.update()
 
 
 ft.app(
