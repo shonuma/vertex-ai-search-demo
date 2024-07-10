@@ -1,8 +1,6 @@
-from flask import Flask
-from flask import request
-
 from typing import List
 
+from flask import Flask, request
 from google.api_core.client_options import ClientOptions
 from google.cloud import discoveryengine_v1 as discoveryengine
 
@@ -34,8 +32,8 @@ def search():
 
 
 if __name__ == "__main__":
-    import sys
     import json
+    import sys
     query = sys.argv[1] or "データ"
     search_response = exec_search(
         search_query=query

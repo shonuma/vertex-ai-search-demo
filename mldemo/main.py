@@ -1,18 +1,11 @@
 import flet as ft
 
-from gcp_libs import (add_or_update_entry, clean_snippet_text, clean_summary_text,
-                      exec_search, get_histories, parse_result)
+from gcp_libs import (add_or_update_entry, clean_snippet_text,
+                      clean_summary_text, exec_search, get_histories,
+                      parse_result)
 
 
 def main(page: ft.Page):
-    # Theme
-    page.theme_mode = ft.ThemeMode.LIGHT
-    # Font
-    page.fonts = {
-       "NotoSansJp": "/fonts/NotoSansJP-SemiBold.ttf"
-    }
-    page.theme = ft.Theme(font_family="NotoSansJp")
-    page.scroll = "always"
 
     def remove_all():
         for _ in range(0, len(page.controls)):
@@ -26,16 +19,16 @@ def main(page: ft.Page):
             q = history['query']
             histories_container.append(
                 ft.Container(
-                    content=ft.Text(q),
+                    content=ft.Text(q, text_align=ft.TextAlign.CENTER),
                     margin=10,
                     padding=10,
                     alignment=ft.alignment.center,
                     bgcolor=ft.colors.GREEN_50,
-                    width=96,
+                    width=128,
                     height=96,
-                    border_radius=10,
+                    border_radius=5,
                     ink=True,
-                    on_click=click_history
+                    on_click=click_history,
                 )
             )
             if i == 2:
@@ -60,21 +53,27 @@ def main(page: ft.Page):
         page.controls.append(histories_area)
         page.controls.append(
             ft.Row(
-                [
-                    text_field,
-                    ft.Column(
-                        controls=[button_field],
-                        alignment=ft.VerticalAlignment.END,
-                    )
-                ],
+                [text_field],
                 alignment=ft.MainAxisAlignment.CENTER,
             )
         )
+        page.controls.append(
+            ft.Row(
+                [button_field],
+                alignment=ft.MainAxisAlignment.CENTER,
+            )
+        )
+
+    def open_faq(e):
+        page.launch_url("https://ff21c8942e4d5a83cd0ccc8f7d597c57b2367f7fc9d81d479a8b6a6-apidata.googleusercontent.com/download/storage/v1/b/forest_of_usecase/o/customer_case%2F%E3%80%8C%E4%BA%8B%E4%BE%8B%E3%81%AE%E6%A3%AE%E3%80%8DFAQ%E8%B3%87%E6%96%99.pdf?jk=AYBlUPDVL82oXX9aIDL3EyG9AV-h8xvuxS-lTy3Wyk5ZQUOrPKGI6lgS8gQ-_9TYMRf3pdje19TqCrMyWLMaBbfCOr0EWfDoZ3Ce7SBhzf6IXpxnczbWzubpMkSi3-L1a0a2pYS9GTyYjBKcicd18GGLlTcL5vKcbDIRgchFxUKZYlY9I7mFWoAi4U6waWg4GUkR5X-i1tqyMBBQcP6mWxbPccrMsn1ArFiXQklPHjxj3DnxqsEt2OQ03k5cIxg1_ZaGwivG6pdQ_pYym2qjPp7IsQWtUK0iXON1ZET9rV2VOFmV2ygWRrc8muosKOBaPrQg0fe6vs-wL7TG5dRwzxqNJqTuaLBJm_nUlsstWcR96c8fpTIy-cevBQc7wzHfVOWoAMfWGZxEzZEgoyes2nVhb3HVtCo8S47ef4LJ4dIY6hYHp1LMge5Mb2hcl6_tlPJbWGkISlZJJSvcbaOOIA4V2CBL4ppC8N6wXZPNqRmiI8Jf4AyaBZuHyfsWAnGQGMaZcPXLxucMxHbVyQUyeN1H_fl-dEkTEUf6uUKBDpVwRgLSInwpmTdyaatK7CwbNGEXyTvi8VkW29fZXHHgxI77OXGMechshtwxj4kSyUTcwQlq4bBcu7ia9kWKgE1aJhvb-AbXiCOW1mQbsAHtt-9OWRHNo3V822lrc0q8fRhs3knZfuFotqgOjBRpug6lXxnZ77ywKBr7lksjOFhDFrlPHzhah8VKlvduS6DIOknOJ3JMlk-eC6slCO_WjGCFtd8XAedqHJKUMV7EJ8OlaPxzLFmCLDW6VH1RAzTd0F5eG_qVDmFLzZbeTTjBFF5tEMg-2oteEtBZUUE6aOx8lzeCfZnjFRVGgZfczadZtcTQijDM2ZawOV8393XNmt8tCXJ3MowIF6yrCfBqklWL_2bi4-5hXJeOMGV_P4G1zye0GTcHmhpNqLtNjb0JVckWm2d8TKNKUx3drxJsyDLMq5pDOS8vjvHo4DBJNRuBlMF5m9FvY3nLmchI_3Lm4ODYa0zc00KGK2FoJywdkLSPIgj_Ta_6J2P-6Me_H0ZYjlt_XIvoplKM_CjgKTMV_vMhB7499FQEbw6yBMQQ3XdFC0-X3lE7SwWM3K3p68arlomlzAmSrwfMzwihcnc6dkj5FfRKhVMQZDXt4os1lsB3R6C51vHW9ZHRtwuZCQm32Y885KsQc2BCTfGItl9qRUTISchlZkn_OBib-dMskmn03anPK5JV6iwqwRAihU0&isca=1")
 
     def open_url(e):
         gs_url = e.control.data
         url = 'https://storage.cloud.google.com/{}'.format(gs_url.split('//')[1])
         page.launch_url(url)
+
+    def text_field_on_submit(e):
+        add_clicked(e)
 
     def click_history(e):
         history_query = e.control.content.value
@@ -131,10 +130,8 @@ def main(page: ft.Page):
                 )
 
         summary_card = ft.Card(
-            # color=ft.colors.GREEN_50,
-            # bgcolor=ft.colors.TRANSPARENT,
             content=ft.Container(
-                bgcolor=ft.colors.GREEN_50,
+                bgcolor=ft.colors.BLUE_50,
                 content=ft.Markdown(
                     pd_result['meta']['summary'],
                     selectable=True,
@@ -142,11 +139,12 @@ def main(page: ft.Page):
                     on_tap_link=lambda e: page.launch_url(e.data),
                 ),
                 width=800,
+                border_radius=5,
                 padding=15
             )
         )
         stacked_controls.append(
-            ft.Row(
+            ft.ResponsiveRow(
                 [summary_card],
                 alignment=ft.MainAxisAlignment.CENTER
             )
@@ -187,7 +185,7 @@ def main(page: ft.Page):
                                         text="開く",
                                         icon=ft.icons.OPEN_IN_NEW,
                                         data=entry['link'],
-                                        on_click=open_url,
+                                        on_click=open_url
                                     )
                                 ],
                                 alignment=ft.MainAxisAlignment.END
@@ -199,7 +197,7 @@ def main(page: ft.Page):
                 ),
             )
             stacked_controls.append(
-                ft.Row(
+                ft.ResponsiveRow(
                     [card],
                     alignment=ft.MainAxisAlignment.CENTER
                 )
@@ -217,6 +215,15 @@ def main(page: ft.Page):
         # 表示
         page.update()
 
+    # Theme
+    page.theme_mode = ft.ThemeMode.LIGHT
+    # Font
+    page.fonts = {
+       "NotoSansJp": "/fonts/NotoSansJP-SemiBold.ttf"
+    }
+    page.theme = ft.Theme(font_family="NotoSansJp")
+    page.scroll = "always"
+
     # Text Field
     text_field = ft.TextField(
         hint_text="検索ワードを入力してください",
@@ -224,25 +231,27 @@ def main(page: ft.Page):
         helper_text="関連する事例の一覧が表示されます。",
         border_radius=20,
         bgcolor=ft.colors.GREY_50,
+        on_submit=text_field_on_submit,
         width=480,
     )
     # Button
     button_field = ft.ElevatedButton(
         "検索",
         on_click=add_clicked,
-        height=32,
+        height=40,
+        width=240,
     )
     # Eyecatch images
     eyecatch_image = ft.Image(
         src="/case_study_forest_eyecatch_02.png",
-        width=320,
-        height=320,
+        width=280,
+        height=280,
         fit=ft.ImageFit.CONTAIN,
     )
     eyecache_developed_on_gcp = ft.Image(
         src="/developed_on_google_cloud.png",
         width=400,
-        height=74,
+        height=64,
     )
     # 上部のメニューバー
     page.appbar = ft.AppBar(
@@ -251,6 +260,13 @@ def main(page: ft.Page):
         title=ft.Text("事例の森"),
         center_title=False,
         bgcolor=ft.colors.SURFACE_VARIANT,
+        actions=[
+            ft.IconButton(
+                ft.icons.QUESTION_MARK,
+                bgcolor=ft.colors.BLUE_50,
+                on_click=open_faq
+            ),
+        ]
     )
     render_main()
     page.update()

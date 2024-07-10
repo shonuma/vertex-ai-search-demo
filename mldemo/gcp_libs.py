@@ -2,6 +2,7 @@ import html
 import os
 import re
 import time
+from base64 import b64encode
 from typing import List
 
 from google.api_core.client_options import ClientOptions
@@ -48,8 +49,9 @@ def get_histories(count: int = 10) -> [str]:
 
 def add_or_update_entry(search_query: str):
     col = client.collection("Queries")
+    b64_encoded_query = b64encode(search_query.encode()).decode()
     query = col.where(
-        filter=firestore.FieldFilter("query", "==", search_query)
+        filter=firestore.FieldFilter("base64dQuery", "==", b64_encoded_query)
     )
     id = None
     for entry in query.stream():
@@ -68,10 +70,10 @@ def add_or_update_entry(search_query: str):
         )
         return
     # クエリをストレージに格納する
-    # TODO: base 64 して入れたほうが確実なので後でやる
     data = {
         'isUserQuery': True,
         'query': search_query,
+        'base64dQuery': b64encode(search_query.encode()).decode(),
         'createdAt': int(time.time()),
         'updatedAt': int(time.time()),
         'count': 0,
