@@ -18,7 +18,7 @@ gcp_settings = dict(
 )
 
 
-def get_histories(count: int) -> [str]:
+def get_histories(count: int = 10) -> [str]:
     # クエリの履歴を取得する
     # isPickUp: true - 優先的に取得する
     # isUserQuery: true - ユーザのクエリ（直近 N 件）
@@ -26,31 +26,51 @@ def get_histories(count: int) -> [str]:
     user_queries = []
 
     query = client.collection("Queries").where(
-        filter=firestore.FieldFilter("isPickedUp", "==", True)
+        filter=firestore.FieldFilter("isPickUp", "==", True)
     ).limit(1000)
     for entry in query.stream():
         picked_ups.append(entry.to_dict())
+        count -= 1
 
-    query = client.collection("Queries").where(
-        filter=firestore.FieldFilter("isUserQuery", "==", True)
-    ).order_by(
+    query = client.collection("Queries").order_by(
         "createdAt", direction=firestore.Query.DESCENDING
     ).limit(1000)
     for entry in query.stream():
-        user_queries.append(entry.to_dict())
+        dict_ = entry.to_dict()
+        if dict_.get('isPickUp'):
+            continue
+        user_queries.append(dict_)
+        count -= 1
+        if count == 0:
+            break
     return picked_ups + user_queries
 
 
-def add_entry(query: str):
+def add_or_update_entry(search_query: str):
+    col = client.collection("Queries")
+    query = col.where(
+        filter=firestore.FieldFilter("query", "==", search_query)
+    )
+    id = None
+    for entry in query.stream():
+        id = entry.id
+    # すでにあるクエリなら更新する
+    if id:
+        # エントリが存在していれば、1 回検索されたということ
+        count = col.document(id).get().to_dict().get('count', 1)
+        count += 1
+        col.document(id).update({'count': count})
+        return
     # クエリをストレージに格納する
+    # TODO: base 64 して入れたほうが確実なので後でやる
     data = {
         'isUserQuery': True,
-        'query': query,
+        'query': search_query,
         'createdAt': int(time.time()),
+        'count': 0,
     }
-    client.collection("Queries").document().set(
-        data
-    )
+    print(data)
+    client.collection("Queries").document().set(data)
 
 
 def clean_summary_text(summary_text: str) -> str:

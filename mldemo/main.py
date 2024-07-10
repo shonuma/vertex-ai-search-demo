@@ -1,6 +1,6 @@
 import flet as ft
 
-from gcp_libs import (add_entry, clean_snippet_text, clean_summary_text,
+from gcp_libs import (add_or_update_entry, clean_snippet_text, clean_summary_text,
                       exec_search, get_histories, parse_result)
 
 
@@ -12,7 +12,6 @@ def main(page: ft.Page):
        "NotoSansJp": "/fonts/NotoSansJP-SemiBold.ttf"
     }
     page.theme = ft.Theme(font_family="NotoSansJp")
-    print(get_histories())
 
     def add_main():
         page.add(
@@ -21,6 +20,13 @@ def main(page: ft.Page):
                 alignment=ft.MainAxisAlignment.CENTER,
             )
         )
+        page.add(
+            ft.Row(
+                [eyecache_developed_on_gcp],
+                alignment=ft.MainAxisAlignment.CENTER,
+            )
+        )
+        page.add(histories_area)
         page.add(
             ft.Row(
                 [
@@ -161,7 +167,7 @@ def main(page: ft.Page):
                     alignment=ft.MainAxisAlignment.CENTER
                 )
             )
-        add_entry(search_query)
+        add_or_update_entry(search_query)
         page.scroll = "always"
 
         text_field.disabled = False
@@ -172,8 +178,9 @@ def main(page: ft.Page):
         hint_text="検索ワードを入力してください",
         prefix_icon=ft.icons.SEARCH,
         helper_text="関連する事例の一覧が表示されます。",
-        border_radius=30,
-        width=576,
+        border_radius=20,
+        bgcolor=ft.colors.GREY_50,
+        width=480,
     )
     button_field = ft.ElevatedButton(
         "検索",
@@ -181,14 +188,41 @@ def main(page: ft.Page):
         height=32,
     )
     eyecatch_image = ft.Image(
-        src="/eyecatch.png",
-        width=384,
-        height=384,
+        src="/case_study_forest_eyecatch_02.png",
+        width=320,
+        height=320,
         fit=ft.ImageFit.CONTAIN,
+    )
+    histories = get_histories()
+    histories_container = []
+    for i, history in enumerate(histories):
+        histories_container.append(
+            ft.Container(
+                content=ft.Text(history['query']),
+                margin=10,
+                padding=10,
+                alignment=ft.alignment.center,
+                bgcolor=ft.colors.GREEN_50,
+                width=96,
+                height=96,
+                border_radius=10,
+                on_click=lambda e: print(e.__dict__)
+            )
+        )
+        if i == 2:
+            break
+    histories_area = ft.Row(
+        histories_container,
+        alignment=ft.MainAxisAlignment.CENTER,
+    )
+    eyecache_developed_on_gcp = ft.Image(
+        src="/developed_on_google_cloud.png",
+        width=400,
+        height=74,
     )
     page.appbar = ft.AppBar(
         leading=ft.Icon(ft.icons.FOREST, color=ft.colors.GREEN_ACCENT_700),
-        leading_width=32,
+        leading_width=24,
         title=ft.Text("事例の森"),
         center_title=False,
         bgcolor=ft.colors.SURFACE_VARIANT,
