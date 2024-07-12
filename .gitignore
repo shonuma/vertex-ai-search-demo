@@ -162,3 +162,4 @@ cython_debug/
 # virtualenv
 py3/
 .env.sh
+.DS_Store
