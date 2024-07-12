@@ -95,7 +95,16 @@ def main(page: ft.Page):
             src="/gemini_loading.gif",
             width=720,
             height=400,
+            # 1. これが一番それっぽく見える
+            # color=ft.colors.RED_50,
+            # color_blend_mode=ft.BlendMode.COLOR_DODGE,
+            # 2. これもあり
+            # color=ft.colors.GREY_200,
+            # color_blend_mode=ft.BlendMode.LUMINOSITY,
+            color=ft.colors.GREEN_50,
+            color_blend_mode=ft.BlendMode.LUMINOSITY,
             fit=ft.ImageFit.CONTAIN,
+            border_radius=2,
         )
         page.controls.append(
             ft.Row(
@@ -132,11 +141,12 @@ def main(page: ft.Page):
         summary_card = ft.Card(
             content=ft.Container(
                 bgcolor=ft.colors.BLUE_50,
-                content=ft.Markdown(
+                content=ft.Text(
                     pd_result['meta']['summary'],
-                    selectable=True,
-                    extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
-                    on_tap_link=lambda e: page.launch_url(e.data),
+                    size=20,
+                    # selectable=True,
+                    # extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
+                    # on_tap_link=lambda e: page.launch_url(e.data),
                 ),
                 width=800,
                 border_radius=5,
@@ -176,8 +186,9 @@ def main(page: ft.Page):
                         [
                             ft.ListTile(
                                 leading=ft.Icon(ft.icons.PICTURE_AS_PDF, color="red"),
-                                title=ft.Text(entry['title']),
-                                subtitle=ft.Text(spans=spans)
+                                # 検索結果のタイトルと説明文のフォントサイズ
+                                title=ft.Text(entry['title'], size=24),
+                                subtitle=ft.Text(spans=spans, size=16)
                             ),
                             ft.Row(
                                 [
@@ -217,15 +228,18 @@ def main(page: ft.Page):
 
     # Theme
     page.theme_mode = ft.ThemeMode.LIGHT
-    # page.url = "https://forestofusecase.songbird.work/"
     page.title = "事例の森"
-    # page.web = True
     # Font
     page.fonts = {
-       "NotoSansJp": "/fonts/NotoSansJP-SemiBold.ttf",
-       # "GoogleSansJp": "https://fonts.googleapis.com/css2?family=Google+Sans+Japanese:wght@400;500;700&display=swap",
+       "NotoSansJpMedium": "/fonts/NotoSansJP-Medium.ttf",
+       "NotoSansJpRegular": "/fonts/NotoSansJP-Regular.ttf",
+       "NotoSansJpSemiBold": "/fonts/NotoSansJP-SemiBold.ttf",
+       "NotoSansVariableFont": "/fonts/NotoSansJP-VariableFont_wght.ttf",
+       "GoogleNotoSansJp": "https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap",
     }
-    page.theme = ft.Theme(font_family="NotoSansJp")
+    page.theme = ft.Theme(
+        font_family="GoogleNotoSansJp"
+    )
     page.scroll = "always"
 
     # Text Field

@@ -83,19 +83,17 @@ def add_or_update_entry(search_query: str):
 
 
 def clean_summary_text(summary_text: str) -> str:
-    # [1], [1,2] のような参照リンクを削除する（ひとまず）
-    # ex: あああ[1] いいい [5] ううう -> あああ いいい うううう
-    return ''.join(re.split(r'\[[0-9, ]+\]', summary_text))
+    return summary_text
 
 
 def clean_snippet_text(snippet_text: str) -> list:
     # snippet テキストをきれいにする
-    # 1) &nbsp; -> 半角スペース
+    # 1) &nbsp; -> 半角スペース(削除)
     # 2) <b>AAA</b> の部分を太字にするための処理
     # - <b>,</b>のいずれかで split するので、奇数配列目を太字にする処理を入れる
     # 太字がある場合、list の長さが 2 以上になるので、spans=[] で接続する
     tmp = html.unescape(snippet_text)
-    tmp = tmp.replace("\xa0", " ")
+    tmp = tmp.replace("\xa0", "")
     # m = re.findall(r'<b>.+?<\/b>', tmp)
     return re.split(r'<\/*b>', tmp)
 
@@ -188,7 +186,8 @@ def exec_search(
             ignore_non_summary_seeking_query=True,
             model_prompt_spec=discoveryengine.SearchRequest.ContentSearchSpec.SummarySpec.ModelPromptSpec(
                 # preamble=preamble,
-                preamble="Given the dialogue between a user and a helpful assistant, along with relevant search results, craft a final response for the assistant in Japanese. The response should:\n\nUtilize all pertinent information from the search results.\nAvoid introducing any new information not found in the search results.\nQuote directly from the search results whenever possible, using the exact same wording.\nNot exceed 20 sentences in total length.\nBe formatted as a bulleted list, with each item beginning with a \"🌳 \" symbol.\nBe written in a casual, easy-to-understand style that aligns with Google's web-based Japanese language.\nEmphasize key points using bold text.\nInclude hyperlinks to company websites when company names are mentioned.",
+                # preamble="Given the dialogue between a user and a helpful assistant, along with relevant search results, craft a final response for the assistant in Japanese. The response should:\n\nUtilize all pertinent information from the search results.\nAvoid introducing any new information not found in the search results.\nQuote directly from the search results whenever possible, using the exact same wording.\nNot exceed 20 sentences in total length.\nBe formatted as a bulleted list, with each item beginning with a \"🌳 \" symbol.\nBe written in a casual, easy-to-understand style that aligns with Google's web-based Japanese language.\nEmphasize key points using bold text.\nInclude hyperlinks to company websites when company names are mentioned.",
+                preamble="Given the dialogue between a user and a helpful assistant, along with relevant search results, craft a final response for the assistant in Japanese. The response should:\n\nUtilize all pertinent information from the search results.\nAvoid introducing any new information not found in the search results.\nQuote directly from the search results whenever possible, using the exact same wording.\nNot exceed 20 sentences in total length.\nBe formatted as a bulleted list, with each item beginning with a \"🌳 \" symbol.\nBe written in a casual, easy-to-understand style that aligns with Google's web-based Japanese language.\nEmphasize key points using【】.\nInclude hyperlinks to company websites when company names are mentioned.\nMust put \\n character at the end of every sentences.",
             ),
             language_code="ja",
             # extractive_content_spec=
