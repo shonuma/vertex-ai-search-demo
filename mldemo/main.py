@@ -217,9 +217,13 @@ def main(page: ft.Page):
 
     # Theme
     page.theme_mode = ft.ThemeMode.LIGHT
+    # page.url = "https://forestofusecase.songbird.work/"
+    page.title = "事例の森"
+    # page.web = True
     # Font
     page.fonts = {
-       "NotoSansJp": "/fonts/NotoSansJP-SemiBold.ttf"
+       "NotoSansJp": "/fonts/NotoSansJP-SemiBold.ttf",
+       # "GoogleSansJp": "https://fonts.googleapis.com/css2?family=Google+Sans+Japanese:wght@400;500;700&display=swap",
     }
     page.theme = ft.Theme(font_family="NotoSansJp")
     page.scroll = "always"
@@ -251,10 +255,10 @@ def main(page: ft.Page):
     eyecache_developed_on_gcp = ft.Image(
         src="/developed_on_google_cloud.png",
         width=400,
-        height=64,
+        height=73.5,
     )
     # 上部のメニューバー
-    page.appbar = ft.AppBar(
+    appbar = ft.AppBar(
         leading=ft.Icon(ft.icons.FOREST, color=ft.colors.GREEN_ACCENT_700),
         leading_width=24,
         title=ft.Text("事例の森"),
@@ -268,6 +272,7 @@ def main(page: ft.Page):
             ),
         ]
     )
+    # page.appbar = appbar
     render_main()
     page.update()
 
@@ -275,5 +280,5 @@ def main(page: ft.Page):
 ft.app(
     target=main,
     assets_dir="assets",
-    # view=ft.AppView.WEB_BROWSER
+    view=ft.AppView.WEB_BROWSER
 )
