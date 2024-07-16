@@ -11,6 +11,7 @@ google_color = {
     'primary_green': '#34A853',
     'tertiary_blue': '#D2E3FC',
     'tertiary_green': '#CEEAD6',
+    'primary_white': '#ffffff'
 }
 
 
@@ -52,7 +53,7 @@ def main(page: ft.Page):
                 histories_container[3:6],
                 alignment=ft.MainAxisAlignment.CENTER,
             ),
-        ]    
+        ]
         # メインコンポーネントの描画
         page.controls.append(
             ft.Column(
@@ -128,7 +129,7 @@ def main(page: ft.Page):
                             "生成しています...",
                             size=12,
                         ),
-                    ),                    
+                    ),
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
             )
@@ -185,7 +186,7 @@ def main(page: ft.Page):
 
         summary_card = ft.Card(
             content=ft.Container(
-                bgcolor=ft.colors.BLUE_50,
+                bgcolor=google_color['tertiary_blue'],
                 content=ft.Text(
                     pd_result['meta']['summary'],
                     size=20,
@@ -195,7 +196,7 @@ def main(page: ft.Page):
                 ),
                 width=800,
                 border_radius=5,
-                padding=15
+                padding=10
             )
         )
         stacked_controls.append(
@@ -242,12 +243,17 @@ def main(page: ft.Page):
                                     ft.ElevatedButton(
                                         content=ft.Row(
                                             [
-                                                ft.Icon(name=ft.icons.OPEN_IN_NEW, color=google_color['primary_blue']),
-                                                ft.Text("開く", color=google_color['primary_blue']),
+                                                ft.Icon(
+                                                    name=ft.icons.OPEN_IN_NEW,
+                                                    color=google_color['primary_white']
+                                                ),
+                                                ft.Text("開く"),
                                             ]
                                         ),
                                         data=entry['link'],
-                                        on_click=open_url
+                                        on_click=open_url,
+                                        color=google_color['primary_white'],
+                                        bgcolor=google_color['primary_blue']
                                     )
                                 ],
                                 alignment=ft.MainAxisAlignment.END
@@ -279,7 +285,7 @@ def main(page: ft.Page):
 
     # Theme
     page.theme_mode = ft.ThemeMode.LIGHT
-    page.bgcolor = '#ffffff'
+    page.bgcolor = google_color['primary_white']
     page.title = "事例の森"
     # Font
     page.fonts = {
@@ -334,12 +340,13 @@ def main(page: ft.Page):
         content=ft.Container(
             ft.Text(
                 "検索",
-                color=google_color['primary_blue'],
             ),
             on_click=add_clicked,
         ),
         height=40,
         width=240,
+        color=google_color['primary_white'],
+        bgcolor=google_color['primary_blue']
     )
     # Eyecatch images
     eyecatch_image = ft.Image(

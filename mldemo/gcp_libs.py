@@ -32,6 +32,7 @@ global_search_settings = {
     'preamble': "Given the dialogue between a user and a helpful assistant, along with relevant search results, craft a final response for the assistant in Japanese. The response should:\n\nUtilize all pertinent information from the search results.\nAvoid introducing any new information not found in the search results.\nQuote directly from the search results whenever possible, using the exact same wording.\nNot exceed 20 sentences in total length.\nBe formatted as a bulleted list, with each item beginning with a \"🌳 \" symbol.\nBe written in a casual, easy-to-understand style that aligns with Google's web-based Japanese language.\nEmphasize key points using【】.\nInclude hyperlinks to company websites when company names are mentioned.\nMust put \\n character at the end of every sentences."
 }
 
+
 def get_histories(count: int = 10) -> [str]:
     # クエリの履歴を取得する
     # isPickUp: true - 優先的に取得する
