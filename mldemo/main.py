@@ -162,64 +162,34 @@ def main(page: ft.Page):
         # 検索実行
         search_query = text_field.value
         search_response = exec_search(search_query=search_query)
-        pd_result = parse_result(search_response)
+        pd_result = {}
+        try:
+            pd_result = parse_result(search_response)
+        except Exception as e:
+            pd_result = {}
+            print(e)
         # print(pd_result)
+
         # 最終的にコントロールに追加するリスト
         stacked_controls = []
-
-        # 要約
-        spans = []
-
-        txts = clean_snippet_text(
-            clean_summary_text(pd_result['meta']['summary'])
-        )
-        for i in range(len(txts)):
-            if i % 2 == 0:
-                spans.append(ft.TextSpan(txts[i]))
-            else:
-                spans.append(
-                    ft.TextSpan(
-                        txts[i],
-                        ft.TextStyle(weight=ft.FontWeight.BOLD),
-                    )
+        if not pd_result:
+            print("Error occured.")
+            stacked_controls.append(
+                ft.Row(
+                    [
+                        ft.Text("結果が取得できませんでした。他の検索ワードでお試しください。")
+                    ]
                 )
-
-        summary_card = ft.Card(
-            content=ft.Container(
-                bgcolor=google_color['tertiary_blue'],
-                content=ft.Text(
-                    pd_result['meta']['summary'],
-                    size=20,
-                    # selectable=True,
-                    # extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
-                    # on_tap_link=lambda e: page.launch_url(e.data),
-                ),
-                width=800,
-                border_radius=5,
-                padding=10
             )
-        )
-        stacked_controls.append(
-            ft.ResponsiveRow(
-                [summary_card],
-                alignment=ft.MainAxisAlignment.CENTER
-            )
-        )
-
-        # 検索結果
-        for entry in pd_result['result']:
-            snippet = entry['snippet']
-            # これだと長すぎなので Trim が必要
-            # snippet = entry['extractive_segment']
-            if entry['snippet_status'] != "SUCCESS":
-                snippet = 'このページの概要は提供されていません。'
-            txts = clean_snippet_text(snippet)
+        else:
+            # 要約
             spans = []
+            txts = clean_snippet_text(
+                clean_summary_text(pd_result['meta']['summary'])
+            )
             for i in range(len(txts)):
                 if i % 2 == 0:
-                    spans.append(
-                        ft.TextSpan(txts[i])
-                    )
+                    spans.append(ft.TextSpan(txts[i]))
                 else:
                     spans.append(
                         ft.TextSpan(
@@ -228,49 +198,93 @@ def main(page: ft.Page):
                         )
                     )
 
-            card = ft.Card(
+            summary_card = ft.Card(
                 content=ft.Container(
-                    content=ft.Column(
-                        [
-                            ft.ListTile(
-                                leading=ft.Icon(ft.icons.PICTURE_AS_PDF, color="red"),
-                                # 検索結果のタイトルと説明文のフォントサイズ
-                                title=ft.Text(entry['title'], size=24),
-                                subtitle=ft.Text(spans=spans, size=16)
-                            ),
-                            ft.Row(
-                                [
-                                    ft.ElevatedButton(
-                                        content=ft.Row(
-                                            [
-                                                ft.Icon(
-                                                    name=ft.icons.OPEN_IN_NEW,
-                                                    color=google_color['primary_white']
-                                                ),
-                                                ft.Text("開く"),
-                                            ]
-                                        ),
-                                        data=entry['link'],
-                                        on_click=open_url,
-                                        color=google_color['primary_white'],
-                                        bgcolor=google_color['primary_blue']
-                                    )
-                                ],
-                                alignment=ft.MainAxisAlignment.END
-                            )
-                        ]
+                    bgcolor=google_color['tertiary_blue'],
+                    content=ft.Text(
+                        pd_result['meta']['summary'],
+                        size=20,
+                        # selectable=True,
+                        # extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
+                        # on_tap_link=lambda e: page.launch_url(e.data),
                     ),
                     width=800,
-                    padding=10,
-                ),
+                    border_radius=5,
+                    padding=10
+                )
             )
             stacked_controls.append(
                 ft.ResponsiveRow(
-                    [card],
+                    [summary_card],
                     alignment=ft.MainAxisAlignment.CENTER
                 )
             )
-        add_or_update_entry(search_query)
+
+            # 検索結果
+            for entry in pd_result['result']:
+                snippet = entry['snippet']
+                # これだと長すぎなので Trim が必要
+                # snippet = entry['extractive_segment']
+                if entry['snippet_status'] != "SUCCESS":
+                    snippet = 'このページの概要は提供されていません。'
+                txts = clean_snippet_text(snippet)
+                spans = []
+                for i in range(len(txts)):
+                    if i % 2 == 0:
+                        spans.append(
+                            ft.TextSpan(txts[i])
+                        )
+                    else:
+                        spans.append(
+                            ft.TextSpan(
+                                txts[i],
+                                ft.TextStyle(weight=ft.FontWeight.BOLD),
+                            )
+                        )
+
+                card = ft.Card(
+                    content=ft.Container(
+                        content=ft.Column(
+                            [
+                                ft.ListTile(
+                                    leading=ft.Icon(ft.icons.PICTURE_AS_PDF, color="red"),
+                                    # 検索結果のタイトルと説明文のフォントサイズ
+                                    title=ft.Text(entry['title'], size=24),
+                                    subtitle=ft.Text(spans=spans, size=16)
+                                ),
+                                ft.Row(
+                                    [
+                                        ft.ElevatedButton(
+                                            content=ft.Row(
+                                                [
+                                                    ft.Icon(
+                                                        name=ft.icons.OPEN_IN_NEW,
+                                                        color=google_color['primary_white']
+                                                    ),
+                                                    ft.Text("開く"),
+                                                ]
+                                            ),
+                                            data=entry['link'],
+                                            on_click=open_url,
+                                            color=google_color['primary_white'],
+                                            bgcolor=google_color['primary_blue']
+                                        )
+                                    ],
+                                    alignment=ft.MainAxisAlignment.END
+                                )
+                            ]
+                        ),
+                        width=800,
+                        padding=10,
+                    ),
+                )
+                stacked_controls.append(
+                    ft.ResponsiveRow(
+                        [card],
+                        alignment=ft.MainAxisAlignment.CENTER
+                    )
+                )
+            add_or_update_entry(search_query)
 
         # 再描画
         remove_all()

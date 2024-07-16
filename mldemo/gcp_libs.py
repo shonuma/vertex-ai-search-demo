@@ -29,7 +29,7 @@ global_search_settings = {
     'retreive_count': 10,
     'display_count': 5,
     'summary_result_count': 3,
-    'preamble': "Given the dialogue between a user and a helpful assistant, along with relevant search results, craft a final response for the assistant in Japanese. The response should:\n\nUtilize all pertinent information from the search results.\nAvoid introducing any new information not found in the search results.\nQuote directly from the search results whenever possible, using the exact same wording.\nNot exceed 20 sentences in total length.\nBe formatted as a bulleted list, with each item beginning with a \"🌳 \" symbol.\nBe written in a casual, easy-to-understand style that aligns with Google's web-based Japanese language.\nEmphasize key points using【】.\nInclude hyperlinks to company websites when company names are mentioned.\nMust put \\n character at the end of every sentences."
+    'preamble': "Given the dialogue between a user and a helpful assistant, along with relevant search results, craft a final response for the assistant in Japanese. The response should:\n\nUtilize all pertinent information from the search results.\nAvoid introducing any new information not found in the search results.\nQuote directly from the search results whenever possible, using the exact same wording.\nNot exceed 20 sentences in total length.\nBe formatted as a bulleted list, with each item beginning with a \"🌳 \" symbol and end with \\n sequence.\nBe written in a casual, easy-to-understand style that aligns with Google's web-based Japanese language.\nEmphasize key points using【】.\nInclude hyperlinks to company websites when company names are mentioned.\nMust put \\n character at the end of every sentences."
 }
 
 
@@ -130,8 +130,6 @@ def parse_result(
     )
 
     # 検索結果
-    # TODO: エラー処理
-    # try:
     i = 0
     for r in search_response.results:
         if i == display_count:
@@ -163,9 +161,6 @@ def parse_result(
         )
         i += 1
 
-    # except Exception as e:
-    #     # 何らかのエラーが起きたら何も返さない
-    #     print(e)
     return response
 
 
