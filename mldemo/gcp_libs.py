@@ -12,12 +12,25 @@ from google.cloud import firestore
 client = firestore.Client(project=os.environ['FIRESTORE_PROJECT_ID'])
 
 # プロジェクトID / ロケーション / 検索エンジンの ID を指定する
-gcp_settings = dict(
+global_gcp_settings = dict(
     project_id=os.environ['PROJECT_ID'],
     location=os.environ['VERTEX_AI_SEARCH_LOCATION'],
     engine_id=os.environ['VERTEX_AI_SEARCH_ENGINE_ID'],
 )
 
+# 検索結果に表示しない PDF のタイトル
+global_black_list = [
+    '「事例の森」FAQ資料',
+]
+
+# vertex_ai_search の settings
+global_search_settings = {
+    'query_store_limit': 1000,
+    'retreive_count': 10,
+    'display_count': 5,
+    'summary_result_count': 3,
+    'preamble': "Given the dialogue between a user and a helpful assistant, along with relevant search results, craft a final response for the assistant in Japanese. The response should:\n\nUtilize all pertinent information from the search results.\nAvoid introducing any new information not found in the search results.\nQuote directly from the search results whenever possible, using the exact same wording.\nNot exceed 20 sentences in total length.\nBe formatted as a bulleted list, with each item beginning with a \"🌳 \" symbol.\nBe written in a casual, easy-to-understand style that aligns with Google's web-based Japanese language.\nEmphasize key points using【】.\nInclude hyperlinks to company websites when company names are mentioned.\nMust put \\n character at the end of every sentences."
+}
 
 def get_histories(count: int = 10) -> [str]:
     # クエリの履歴を取得する
@@ -28,14 +41,14 @@ def get_histories(count: int = 10) -> [str]:
 
     query = client.collection("Queries").where(
         filter=firestore.FieldFilter("isPickUp", "==", True)
-    ).limit(1000)
+    ).limit(global_search_settings['query_store_limit'])
     for entry in query.stream():
         picked_ups.append(entry.to_dict())
         count -= 1
 
     query = client.collection("Queries").order_by(
         "updatedAt", direction=firestore.Query.DESCENDING
-    ).limit(1000)
+    ).limit(global_search_settings['query_store_limit'])
     for entry in query.stream():
         dict_ = entry.to_dict()
         if dict_.get('isPickUp'):
@@ -99,7 +112,8 @@ def clean_snippet_text(snippet_text: str) -> list:
 
 
 def parse_result(
-    search_response: List[discoveryengine.SearchResponse]
+    search_response: List[discoveryengine.SearchResponse],
+    display_count=global_search_settings['display_count'],
 ) -> dict:
     response = {
         'meta': {},
@@ -115,14 +129,21 @@ def parse_result(
     )
 
     # 検索結果
+    # TODO: エラー処理
     # try:
+    i = 0
     for r in search_response.results:
+        if i == display_count:
+            break
         struct_data = r.document.struct_data
         if not struct_data:
             title = r.document.derived_struct_data.get(
                 'link', 'https://example.com').split('/')[-1].split('.')[0]
         else:
             title = struct_data.get('title')
+        # global_black_list に登録された PDF の場合は検索から除外する
+        if title in global_black_list:
+            continue
 
         response['result'].append(
             dict(
@@ -131,12 +152,15 @@ def parse_result(
                 title=title,
                 # リンク先
                 link=r.document.derived_struct_data.get('link', 'https://example.com'),
+                # 抽出
+                extractive_segment=r.document.derived_struct_data["extractive_segments"][0]["content"],
                 # スニペット文字列
                 snippet=r.document.derived_struct_data["snippets"][0]["snippet"],
                 # スニペットを取得できたかどうか
                 snippet_status=r.document.derived_struct_data["snippets"][0]["snippet_status"],
             )
         )
+        i += 1
 
     # except Exception as e:
     #     # 何らかのエラーが起きたら何も返さない
@@ -148,9 +172,9 @@ def exec_search(
     search_query: str,
 ) -> List[discoveryengine.SearchResponse]:
     # needed valuables
-    project_id = gcp_settings['project_id']
-    location = gcp_settings['location']
-    engine_id = gcp_settings['engine_id']
+    project_id = global_gcp_settings['project_id']
+    location = global_gcp_settings['location']
+    engine_id = global_gcp_settings['engine_id']
 
     #  For more information, refer to:
     # https://cloud.google.com/generative-ai-app-builder/docs/locations#specify_a_multi-region_for_your_data_store
@@ -176,21 +200,23 @@ def exec_search(
         snippet_spec=discoveryengine.SearchRequest.ContentSearchSpec.SnippetSpec(
             return_snippet=True
         ),
+        extractive_content_spec=discoveryengine.SearchRequest.ContentSearchSpec.ExtractiveContentSpec(
+            max_extractive_segment_count=1,
+            max_extractive_answer_count=1,
+        ),
         # For information about search summaries, refer to:
         # https://cloud.google.com/generative-ai-app-builder/docs/get-search-summaries
         summary_spec=discoveryengine.SearchRequest.ContentSearchSpec.SummarySpec(
             # サマリーで利用する結果の数
-            summary_result_count=3,
+            summary_result_count=global_search_settings['summary_result_count'],
             include_citations=True,
             ignore_adversarial_query=True,
             ignore_non_summary_seeking_query=True,
             model_prompt_spec=discoveryengine.SearchRequest.ContentSearchSpec.SummarySpec.ModelPromptSpec(
-                # preamble=preamble,
                 # preamble="Given the dialogue between a user and a helpful assistant, along with relevant search results, craft a final response for the assistant in Japanese. The response should:\n\nUtilize all pertinent information from the search results.\nAvoid introducing any new information not found in the search results.\nQuote directly from the search results whenever possible, using the exact same wording.\nNot exceed 20 sentences in total length.\nBe formatted as a bulleted list, with each item beginning with a \"🌳 \" symbol.\nBe written in a casual, easy-to-understand style that aligns with Google's web-based Japanese language.\nEmphasize key points using bold text.\nInclude hyperlinks to company websites when company names are mentioned.",
-                preamble="Given the dialogue between a user and a helpful assistant, along with relevant search results, craft a final response for the assistant in Japanese. The response should:\n\nUtilize all pertinent information from the search results.\nAvoid introducing any new information not found in the search results.\nQuote directly from the search results whenever possible, using the exact same wording.\nNot exceed 20 sentences in total length.\nBe formatted as a bulleted list, with each item beginning with a \"🌳 \" symbol.\nBe written in a casual, easy-to-understand style that aligns with Google's web-based Japanese language.\nEmphasize key points using【】.\nInclude hyperlinks to company websites when company names are mentioned.\nMust put \\n character at the end of every sentences.",
+                preamble=global_search_settings['preamble'],
             ),
             language_code="ja",
-            # extractive_content_spec=
             model_spec=discoveryengine.SearchRequest.ContentSearchSpec.SummarySpec.ModelSpec(
                 # version="stable",
                 version="preview",
@@ -204,7 +230,7 @@ def exec_search(
         serving_config=serving_config,
         query=search_query,
         # 検索結果の件数
-        page_size=5,
+        page_size=global_search_settings['retreive_count'],
         content_search_spec=content_search_spec,
         query_expansion_spec=discoveryengine.SearchRequest.QueryExpansionSpec(
             condition=discoveryengine.SearchRequest.QueryExpansionSpec.Condition.AUTO,
@@ -215,5 +241,5 @@ def exec_search(
     )
 
     response = client.search(request)
-    # print(response)
+    print(response)
     return response

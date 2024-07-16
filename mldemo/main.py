@@ -4,9 +4,17 @@ from gcp_libs import (add_or_update_entry, clean_snippet_text,
                       clean_summary_text, exec_search, get_histories,
                       parse_result)
 
+google_color = {
+    'primary_blue': '#4285F4',
+    'primary_red': '#EA4335',
+    'primary_yellow': '#FBBC04',
+    'primary_green': '#34A853',
+    'tertiary_blue': '#D2E3FC',
+    'tertiary_green': '#CEEAD6',
+}
+
 
 def main(page: ft.Page):
-
     def remove_all():
         for _ in range(0, len(page.controls)):
             page.controls.pop()
@@ -20,24 +28,37 @@ def main(page: ft.Page):
             histories_container.append(
                 ft.Container(
                     content=ft.Text(q, text_align=ft.TextAlign.CENTER),
-                    margin=10,
-                    padding=10,
+                    margin=5,
+                    padding=5,
                     alignment=ft.alignment.center,
-                    bgcolor=ft.colors.GREEN_50,
+                    # bgcolor=ft.colors.GREEN_50,
+                    bgcolor='#81C995',
                     width=128,
-                    height=96,
+                    height=64,
                     border_radius=5,
                     ink=True,
                     on_click=click_history,
                 )
             )
-            if i == 2:
+            if i == 5:
                 break
-        histories_area = ft.Row(
-            histories_container,
-            alignment=ft.MainAxisAlignment.CENTER,
-        )
+        # 3行ずつに揃える
+        histories_area = [
+            ft.Row(
+                histories_container[0:3],
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+            ft.Row(
+                histories_container[3:6],
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+        ]    
         # メインコンポーネントの描画
+        page.controls.append(
+            ft.Column(
+                controls=[header_field],
+            )
+        )
         page.controls.append(
             ft.Row(
                 [eyecatch_image],
@@ -50,7 +71,8 @@ def main(page: ft.Page):
                 alignment=ft.MainAxisAlignment.CENTER,
             )
         )
-        page.controls.append(histories_area)
+        page.controls.append(histories_area[0])
+        page.controls.append(histories_area[1])
         page.controls.append(
             ft.Row(
                 [text_field],
@@ -76,6 +98,8 @@ def main(page: ft.Page):
         add_clicked(e)
 
     def click_history(e):
+        if text_field.disabled:
+            return
         history_query = e.control.content.value
         text_field.value = history_query
         page.update()
@@ -90,19 +114,40 @@ def main(page: ft.Page):
         remove_all()
         render_main()
         page.update()
+        page.controls.append(
+            ft.Row(
+                [
+                    ft.Image(
+                        src="/Gemini_icon_full-color-rgb@2x.png",
+                        width=16,
+                        height=16,
+                        fit=ft.ImageFit.CONTAIN,
+                    ),
+                    ft.Container(
+                        ft.Text(
+                            "生成しています...",
+                            size=12,
+                        ),
+                    ),                    
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+            )
+        )
         # Loading の gif を表示
         loading_image = ft.Image(
-            src="/gemini_loading.gif",
-            width=720,
-            height=400,
+            src="/GEMINI_Regular_Skeleton_Loader.gif",
+            # 720 x 400
+            width=540,
+            height=300,
             # 1. これが一番それっぽく見える
             # color=ft.colors.RED_50,
+            # color=ft.colors.GREY_50,
             # color_blend_mode=ft.BlendMode.COLOR_DODGE,
             # 2. これもあり
             # color=ft.colors.GREY_200,
             # color_blend_mode=ft.BlendMode.LUMINOSITY,
-            color=ft.colors.GREEN_50,
-            color_blend_mode=ft.BlendMode.LUMINOSITY,
+            # color=ft.colors.GREEN_50,
+            # color_blend_mode=ft.BlendMode.LUMINOSITY,
             fit=ft.ImageFit.CONTAIN,
             border_radius=2,
         )
@@ -117,7 +162,7 @@ def main(page: ft.Page):
         search_query = text_field.value
         search_response = exec_search(search_query=search_query)
         pd_result = parse_result(search_response)
-        print(pd_result)
+        # print(pd_result)
         # 最終的にコントロールに追加するリスト
         stacked_controls = []
 
@@ -163,6 +208,8 @@ def main(page: ft.Page):
         # 検索結果
         for entry in pd_result['result']:
             snippet = entry['snippet']
+            # これだと長すぎなので Trim が必要
+            # snippet = entry['extractive_segment']
             if entry['snippet_status'] != "SUCCESS":
                 snippet = 'このページの概要は提供されていません。'
             txts = clean_snippet_text(snippet)
@@ -193,8 +240,12 @@ def main(page: ft.Page):
                             ft.Row(
                                 [
                                     ft.ElevatedButton(
-                                        text="開く",
-                                        icon=ft.icons.OPEN_IN_NEW,
+                                        content=ft.Row(
+                                            [
+                                                ft.Icon(name=ft.icons.OPEN_IN_NEW, color=google_color['primary_blue']),
+                                                ft.Text("開く", color=google_color['primary_blue']),
+                                            ]
+                                        ),
                                         data=entry['link'],
                                         on_click=open_url
                                     )
@@ -228,6 +279,7 @@ def main(page: ft.Page):
 
     # Theme
     page.theme_mode = ft.ThemeMode.LIGHT
+    page.bgcolor = '#ffffff'
     page.title = "事例の森"
     # Font
     page.fonts = {
@@ -241,7 +293,32 @@ def main(page: ft.Page):
         font_family="GoogleNotoSansJp"
     )
     page.scroll = "always"
-
+    # Header
+    header_field = ft.Container(
+        content=ft.Row(
+            [
+                ft.Container(
+                    ft.Text(
+                        spans=[
+                            ft.TextSpan(
+                                "FAQ",
+                                ft.TextStyle(
+                                    decoration=ft.TextDecoration.UNDERLINE,
+                                    decoration_color=google_color['primary_blue'],
+                                ),
+                                on_click=open_faq,
+                            )
+                        ],
+                        color=google_color['primary_blue'],
+                        size=16,
+                        text_align=ft.TextAlign.CENTER,
+                    ),
+                    width=64,
+                ),
+            ],
+            alignment=ft.MainAxisAlignment.END,
+        ),
+    )
     # Text Field
     text_field = ft.TextField(
         hint_text="検索ワードを入力してください",
@@ -254,8 +331,13 @@ def main(page: ft.Page):
     )
     # Button
     button_field = ft.ElevatedButton(
-        "検索",
-        on_click=add_clicked,
+        content=ft.Container(
+            ft.Text(
+                "検索",
+                color=google_color['primary_blue'],
+            ),
+            on_click=add_clicked,
+        ),
         height=40,
         width=240,
     )
