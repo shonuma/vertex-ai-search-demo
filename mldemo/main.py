@@ -371,8 +371,8 @@ def main(page: ft.Page):
     )
     eyecache_developed_on_gcp = ft.Image(
         src="/developed_on_google_cloud.png",
-        width=400,
-        height=73.5,
+        height=94,
+        fit=ft.ImageFit.CONTAIN,
     )
     # 上部のメニューバー
     appbar = ft.AppBar(
