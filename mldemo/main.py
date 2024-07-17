@@ -355,12 +355,12 @@ def main(page: ft.Page):
             ft.Text(
                 "検索",
             ),
-            on_click=add_clicked,
         ),
         height=40,
         width=240,
         color=google_color['primary_white'],
-        bgcolor=google_color['primary_blue']
+        bgcolor=google_color['primary_blue'],
+        on_click=add_clicked,
     )
     # Eyecatch images
     eyecatch_image = ft.Image(
