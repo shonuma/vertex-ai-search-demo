@@ -50,9 +50,13 @@ def get_histories(count: int = 10) -> [str]:
     query = client.collection("Queries").order_by(
         "updatedAt", direction=firestore.Query.DESCENDING
     ).limit(global_search_settings['query_store_limit'])
+
     for entry in query.stream():
         dict_ = entry.to_dict()
         if dict_.get('isPickUp'):
+            continue
+        # 同じクエリが 2 件表示されないようにする
+        if dict_.get('query') in [_['query'] for _ in picked_ups]:
             continue
         user_queries.append(dict_)
         count -= 1
