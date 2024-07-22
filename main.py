@@ -1,3 +1,5 @@
+import os
+
 import flet as ft
 
 from libs.gcp_libs import (add_or_update_entry, clean_snippet_text,
@@ -302,10 +304,6 @@ def main(page: ft.Page):
     page.title = "事例の森"
     # Font
     page.fonts = {
-       "NotoSansJpMedium": "/fonts/NotoSansJP-Medium.ttf",
-       "NotoSansJpRegular": "/fonts/NotoSansJP-Regular.ttf",
-       "NotoSansJpSemiBold": "/fonts/NotoSansJP-SemiBold.ttf",
-       "NotoSansVariableFont": "/fonts/NotoSansJP-VariableFont_wght.ttf",
        "GoogleNotoSansJp": "https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap",
     }
     page.theme = ft.Theme(
@@ -393,16 +391,9 @@ def main(page: ft.Page):
     page.update()
 
 
-ft.app(
+app = ft.app(
     target=main,
     assets_dir="assets",
     view=ft.AppView.WEB_BROWSER,
+    export_asgi_app=False if os.environ.get('run_local') else True,
 )
-
-if __name__ == '__main__':
-    ft.app(
-        target=main,
-        assets_dir="assets",
-        view=ft.AppView.WEB_BROWSER,
-        export_asgi_app=True,
-    )
