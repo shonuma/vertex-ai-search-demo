@@ -1,8 +1,8 @@
 import flet as ft
 
-from gcp_libs import (add_or_update_entry, clean_snippet_text,
-                      clean_summary_text, exec_search, get_histories,
-                      parse_result)
+from libs.gcp_libs import (add_or_update_entry, clean_snippet_text,
+                           clean_summary_text, exec_search, get_histories,
+                           parse_result)
 
 google_color = {
     'primary_blue': '#4285F4',
@@ -168,7 +168,6 @@ def main(page: ft.Page):
         except Exception as e:
             pd_result = {}
             print(e)
-        # print(pd_result)
 
         # 最終的にコントロールに追加するリスト
         stacked_controls = []
@@ -397,5 +396,13 @@ def main(page: ft.Page):
 ft.app(
     target=main,
     assets_dir="assets",
-    view=ft.AppView.WEB_BROWSER
+    view=ft.AppView.WEB_BROWSER,
 )
+
+if __name__ == '__main__':
+    ft.app(
+        target=main,
+        assets_dir="assets",
+        view=ft.AppView.WEB_BROWSER,
+        export_asgi_app=True,
+    )
