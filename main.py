@@ -395,5 +395,5 @@ app = ft.app(
     target=main,
     assets_dir="assets",
     view=ft.AppView.WEB_BROWSER,
-    export_asgi_app=False if os.environ.get('run_local') else True,
+    # export_asgi_app=False if os.environ.get('run_local') else True,
 )
