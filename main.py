@@ -68,12 +68,12 @@ def main(page: ft.Page):
                 alignment=ft.MainAxisAlignment.CENTER,
             )
         )
-        page.controls.append(
-            ft.Row(
-                [eyecache_developed_on_gcp],
-                alignment=ft.MainAxisAlignment.CENTER,
-            )
-        )
+        # page.controls.append(
+        #     ft.Row(
+        #         [eyecache_developed_on_gcp],
+        #         alignment=ft.MainAxisAlignment.CENTER,
+        #     )
+        # )
         page.controls.append(histories_area[0])
         page.controls.append(histories_area[1])
         page.controls.append(
@@ -185,41 +185,49 @@ def main(page: ft.Page):
         else:
             # 要約
             spans = []
-            txts = clean_snippet_text(
-                clean_summary_text(pd_result['meta']['summary'])
-            )
-            for i in range(len(txts)):
-                if i % 2 == 0:
-                    spans.append(ft.TextSpan(txts[i]))
-                else:
-                    spans.append(
-                        ft.TextSpan(
-                            txts[i],
-                            ft.TextStyle(weight=ft.FontWeight.BOLD),
+            try:
+                txts = clean_summary_text(
+                    pd_result['meta']['summary']
+                )
+                for i in range(len(txts)):
+                    txt = txts[i]
+                    if txt.startswith('[BOLD]'):
+                        txt = txt.split('[BOLD]')[1:][0]
+                        spans.append(
+                            ft.TextSpan(
+                                txt,
+                                ft.TextStyle(weight=ft.FontWeight.BOLD),
+                            )
                         )
+                    else:
+                        spans.append(ft.TextSpan(txt))
+                summary_card = ft.Card(
+                    content=ft.Container(
+                        bgcolor=google_color['tertiary_blue'],
+                        content=ft.Text(
+                            size=20,
+                            spans=spans,
+                        ),
+                #         content=ft.Text(
+                #             pd_result['meta']['summary'],
+                #             size=20,
+                #             # selectable=True,
+                #             # extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
+                #             # on_tap_link=lambda e: page.launch_url(e.data),
+                #         ),
+                        width=800,
+                        border_radius=5,
+                        padding=10
                     )
-
-            summary_card = ft.Card(
-                content=ft.Container(
-                    bgcolor=google_color['tertiary_blue'],
-                    content=ft.Text(
-                        pd_result['meta']['summary'],
-                        size=20,
-                        # selectable=True,
-                        # extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
-                        # on_tap_link=lambda e: page.launch_url(e.data),
-                    ),
-                    width=800,
-                    border_radius=5,
-                    padding=10
                 )
-            )
-            stacked_controls.append(
-                ft.ResponsiveRow(
-                    [summary_card],
-                    alignment=ft.MainAxisAlignment.CENTER
+                stacked_controls.append(
+                    ft.ResponsiveRow(
+                        [summary_card],
+                        alignment=ft.MainAxisAlignment.CENTER
+                    )
                 )
-            )
+            except Exception as e:
+                print('ERROR{}'.format(str(e)))
 
             # 検索結果
             for entry in pd_result['result']:
@@ -228,7 +236,14 @@ def main(page: ft.Page):
                 # snippet = entry['extractive_segment']
                 if entry['snippet_status'] != "SUCCESS":
                     snippet = 'このページの概要は提供されていません。'
-                txts = clean_snippet_text(snippet)
+                txts = []
+                try:
+                    txts = clean_snippet_text(snippet)
+                except Exception as e:
+                    print('ERROR:{}'.format(e))
+                # パースに失敗したら結果に表示しない
+                if not txts:
+                    continue
                 spans = []
                 for i in range(len(txts)):
                     if i % 2 == 0:
