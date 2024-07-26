@@ -106,6 +106,10 @@ def clean_summary_text(summary_text: str) -> str:
     try:
         # 。と-の間のスペースを除去する
         tmp = re.sub(r'。\s+?\-', '。-', summary_text)
+        # <br> タグを除去する
+        tmp = tmp.replace('<br>', '')
+        # (,,,,) を除去する
+        tmp = re.sub(r'\(,+\)', '', tmp)
         # 。と- が並んでいたら改行コードを挿入する
         lines = tmp.replace('。-', '。\n-').split('\n')
         for s in lines:
