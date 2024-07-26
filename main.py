@@ -113,8 +113,6 @@ def main(page: ft.Page):
         if text_field.disabled:
             return
         history_query = e.control.data
-        print(e.control.data)
-        print(e.control.content.value)
         text_field.value = history_query
         page.update()
         add_clicked(e)

@@ -244,7 +244,7 @@ def exec_search(
             language_code="ja",
             model_spec=discoveryengine.SearchRequest.ContentSearchSpec.SummarySpec.ModelSpec(
                 # version="stable",
-                version="preview",
+                version="gemini-1.5-flash-001/answer_gen/v1",
             ),
             use_semantic_chunks=True,
         ),
