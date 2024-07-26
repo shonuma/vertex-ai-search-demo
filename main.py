@@ -28,18 +28,27 @@ def main(page: ft.Page):
         histories_container = []
         for i, history in enumerate(histories):
             q = history['query']
+            display_q = q
+            # 15 文字以上の場合は、表示を ... にする
+            if len(display_q) > 15:
+                display_q = display_q[0:15] + '...'
             histories_container.append(
                 ft.Container(
-                    content=ft.Text(q, text_align=ft.TextAlign.CENTER),
-                    margin=5,
-                    padding=5,
+                    content=ft.Text(
+                        display_q,
+                        color=google_color['primary_white'],
+                        text_align=ft.TextAlign.CENTER
+                    ),
+                    margin=4,
+                    padding=4,
                     alignment=ft.alignment.center,
-                    # bgcolor=ft.colors.GREEN_50,
-                    bgcolor='#81C995',
-                    width=128,
-                    height=64,
-                    border_radius=5,
+                    bgcolor=google_color['primary_blue'],
+                    width=148,
+                    height=48,
+                    border_radius=32,
                     ink=True,
+                    # 元のクエリを保持
+                    data=q,
                     on_click=click_history,
                 )
             )
@@ -103,7 +112,9 @@ def main(page: ft.Page):
     def click_history(e):
         if text_field.disabled:
             return
-        history_query = e.control.content.value
+        history_query = e.control.data
+        print(e.control.data)
+        print(e.control.content.value)
         text_field.value = history_query
         page.update()
         add_clicked(e)
@@ -376,9 +387,10 @@ def main(page: ft.Page):
     )
     # Eyecatch images
     eyecatch_image = ft.Image(
-        src="/case_study_forest_eyecatch_02.png",
-        width=280,
-        height=280,
+        src="/blue-logo4.png",
+        # src="/case_study_forest_eyecatch_02.png",
+        width=480,
+        height=240,
         fit=ft.ImageFit.CONTAIN,
     )
     eyecache_developed_on_gcp = ft.Image(
