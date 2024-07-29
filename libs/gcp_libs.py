@@ -26,7 +26,7 @@ global_black_list = [
 # vertex_ai_search の settings
 global_search_settings = {
     'query_store_limit': 1000,
-    'retreive_count': 10,
+    'retreive_count': 30,
     'display_count': 20,
     'summary_result_count': 3,
     # 'preamble': "Given the dialogue between a user and a helpful assistant, along with relevant search results, craft a final response for the assistant in Japanese. The response should:\n\nUtilize all pertinent information from the search results.\nAvoid introducing any new information not found in the search results.\nQuote directly from the search results whenever possible, using the exact same wording.\nNot exceed 20 sentences in total length.\nBe formatted as a bulleted list, with each item beginning with a \"🌳 \" symbol and end with \\n sequence.\nBe written in a casual, easy-to-understand style that aligns with Google's web-based Japanese language.\nEmphasize key points using【】.\nInclude hyperlinks to company websites when company names are mentioned.\nMust put \\n character at the end of every sentences."
