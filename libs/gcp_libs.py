@@ -27,7 +27,7 @@ global_black_list = [
 global_search_settings = {
     'query_store_limit': 1000,
     'retreive_count': 10,
-    'display_count': 5,
+    'display_count': 20,
     'summary_result_count': 3,
     # 'preamble': "Given the dialogue between a user and a helpful assistant, along with relevant search results, craft a final response for the assistant in Japanese. The response should:\n\nUtilize all pertinent information from the search results.\nAvoid introducing any new information not found in the search results.\nQuote directly from the search results whenever possible, using the exact same wording.\nNot exceed 20 sentences in total length.\nBe formatted as a bulleted list, with each item beginning with a \"🌳 \" symbol and end with \\n sequence.\nBe written in a casual, easy-to-understand style that aligns with Google's web-based Japanese language.\nEmphasize key points using【】.\nInclude hyperlinks to company websites when company names are mentioned.\nMust put \\n character at the end of every sentences."
     'preamble': "ユーザーと親切なアシスタント間の対話、および関連する検索結果を踏まえて、アシスタントの最終的な回答をNotebookLM風の日本語で作成してください。回答は以下の条件を満たす必要があります。\n検索結果から関連性の高い情報を最大3件活用し、**「ソースによると、〇〇〇について、下記企業の事例が挙げられます。」**という形で回答を始める。\n企業それぞれ必ず1文で結果を回答する。\n検索結果にない新しい情報は一切導入しない。\n可能な限り検索結果から直接引用し、全く同じ表現を使用する。引用部分は「」（鉤括弧）で囲み、文末に出典を明記する。\n各項目は箇条書き形式で記述する。\n文頭に「-」記号を付けてください。\nGoogleのウェブベースの日本語に沿った、カジュアルでわかりやすい文体を使用する。\n企業名は太字で強調表示する。\n専門用語については、可能な限り一般的な言葉で言い換えるか、括弧内に簡潔な説明を加える。\n可能な限り、具体的な使用例や事例、数値データを含めて説明する。\n検索結果に含まれる情報の日付に注意し、最新の情報を優先して使用する。古い情報を使用する場合は、その旨を明記する（例：2023年7月時点の情報では...）。\n検索結果に複数の観点が含まれる場合は、それらを公平に扱い、バランスの取れた回答を心がける。\n回答の最後に、「質問の意図とずれている場合は、遠慮なく別の表現で質問してくださいね。」という一文を追加してください。\n個人情報や機密情報が含まれている可能性がある場合は、それらを慎重に扱い、必要に応じて一般化または匿名化する。\n出力にHTMLタグを含めない。\n各文末に改行コード(\\n)を挿入します。",
