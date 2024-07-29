@@ -16,6 +16,11 @@ google_color = {
     'primary_white': '#ffffff'
 }
 
+global_design_settings = {
+    'result_horizontal_margin': 64,
+    'result_vertical_margin': 5,
+}
+
 
 def main(page: ft.Page):
     def remove_all():
@@ -226,8 +231,12 @@ def main(page: ft.Page):
                 #         ),
                         width=800,
                         border_radius=5,
-                        padding=10
-                    )
+                        padding=10,
+                    ),
+                    margin=ft.margin.symmetric(
+                        vertical=global_design_settings['result_vertical_margin'],
+                        horizontal=global_design_settings['result_horizontal_margin'],
+                    ),
                 )
                 stacked_controls.append(
                     ft.ResponsiveRow(
@@ -301,6 +310,10 @@ def main(page: ft.Page):
                         ),
                         width=800,
                         padding=10,
+                    ),
+                    margin=ft.margin.symmetric(
+                        vertical=global_design_settings['result_vertical_margin'],
+                        horizontal=global_design_settings['result_horizontal_margin'],
                     ),
                 )
                 stacked_controls.append(
