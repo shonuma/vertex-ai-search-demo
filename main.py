@@ -82,12 +82,6 @@ def main(page: ft.Page):
                 alignment=ft.MainAxisAlignment.CENTER,
             )
         )
-        # page.controls.append(
-        #     ft.Row(
-        #         [eyecache_developed_on_gcp],
-        #         alignment=ft.MainAxisAlignment.CENTER,
-        #     )
-        # )
         page.controls.append(histories_area[0])
         page.controls.append(histories_area[1])
         page.controls.append(
@@ -156,15 +150,6 @@ def main(page: ft.Page):
             # 720 x 400
             width=540,
             height=300,
-            # 1. これが一番それっぽく見える
-            # color=ft.colors.RED_50,
-            # color=ft.colors.GREY_50,
-            # color_blend_mode=ft.BlendMode.COLOR_DODGE,
-            # 2. これもあり
-            # color=ft.colors.GREY_200,
-            # color_blend_mode=ft.BlendMode.LUMINOSITY,
-            # color=ft.colors.GREEN_50,
-            # color_blend_mode=ft.BlendMode.LUMINOSITY,
             fit=ft.ImageFit.CONTAIN,
             border_radius=2,
         )
