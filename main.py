@@ -27,81 +27,6 @@ def main(page: ft.Page):
         for _ in range(0, len(page.controls)):
             page.controls.pop()
 
-    def on_dissmiss_dialog(e):
-        page.close(dlg)
-
-    def setup_barchart_modal():
-        # 棒グラフの作成
-        hs_ = get_histories_by_count()
-        bar_groups = []
-        labels = []
-        max_ = 0
-        for i, h_ in enumerate(hs_):
-            bar_groups.append(
-                ft.BarChartGroup(
-                    x=i+1,
-                    bar_rods=[
-                        ft.BarChartRod(
-                            from_y=0,
-                            to_y=h_['count'],
-                            width=24,
-                            color='#' + str(hex(255 - (i * 16 + 1)))[2:] + '4285FF',
-                            tooltip='{} : {}'.format(h_['query'], h_['count']),
-                            border_radius=0,
-                        )
-                    ]
-                )
-            )
-            labels.append(
-                ft.ChartAxisLabel(
-                    value=i+1,
-                    label=ft.Container(
-                        ft.Text(
-                            h_['query'][0:15] + "...",
-                            size=10,
-                            text_align=ft.TextAlign.CENTER,
-                        ),
-                        padding=1,
-                        width=48,
-                    )
-                )
-            )
-            if i == 0:
-                max_ = h_['count']
-            if i == 9:
-                break
-        chart = ft.Container(
-            ft.BarChart(
-                bar_groups=bar_groups,
-                border=ft.border.all(1, ft.colors.GREY_400),
-                left_axis=ft.ChartAxis(
-                    title=ft.Text("検索件数"),
-                    labels_size=48,
-                    title_size=24,
-                ),
-                bottom_axis=ft.ChartAxis(
-                    title=ft.Text("よく検索されているワード"),
-                    labels=labels,
-                    labels_size=64,
-                    title_size=24,
-                ),
-                horizontal_grid_lines=ft.ChartGridLines(
-                    color=ft.colors.GREY_300,
-                    width=1,
-                    dash_pattern=[3, 3]
-                ),
-                tooltip_bgcolor=ft.colors.with_opacity(0.8, ft.colors.GREY_300),
-                max_y=int(max_/10) * 10 + 10,
-                interactive=True,
-                expand=True,
-            ),
-            width=640,
-        )
-        return ft.AlertDialog(
-            content=chart,
-            on_dismiss=lambda e: on_dissmiss_dialog(e),
-        )
-
     def render_main():
         # History
         histories = get_histories()
@@ -176,7 +101,82 @@ def main(page: ft.Page):
     def open_faq(e):
         page.launch_url("https://storage.cloud.google.com/forest_of_usecase/customer_case/「事例の森」FAQ資料.pdf")
 
-    def open_dialog(dlg):
+    def open_dialog(e):
+        def on_dissmiss_dialog(e):
+            page.close(dlg)
+
+        def setup_barchart_modal():
+            # 棒グラフの作成
+            hs_ = get_histories_by_count()
+            bar_groups = []
+            labels = []
+            max_ = 0
+            for i, h_ in enumerate(hs_):
+                bar_groups.append(
+                    ft.BarChartGroup(
+                        x=i+1,
+                        bar_rods=[
+                            ft.BarChartRod(
+                                from_y=0,
+                                to_y=h_['count'],
+                                width=24,
+                                color='#' + str(hex(255 - (i * 16 + 1)))[2:] + '4285FF',
+                                tooltip='{} : {}'.format(h_['query'], h_['count']),
+                                border_radius=0,
+                            )
+                        ]
+                    )
+                )
+                labels.append(
+                    ft.ChartAxisLabel(
+                        value=i+1,
+                        label=ft.Container(
+                            ft.Text(
+                                h_['query'][0:15] + "...",
+                                size=10,
+                                text_align=ft.TextAlign.CENTER,
+                            ),
+                            padding=1,
+                            width=48,
+                        )
+                    )
+                )
+                if i == 0:
+                    max_ = h_['count']
+                if i == 9:
+                    break
+            chart = ft.Container(
+                ft.BarChart(
+                    bar_groups=bar_groups,
+                    border=ft.border.all(1, ft.colors.GREY_400),
+                    left_axis=ft.ChartAxis(
+                        title=ft.Text("検索件数"),
+                        labels_size=48,
+                        title_size=24,
+                    ),
+                    bottom_axis=ft.ChartAxis(
+                        title=ft.Text("よく検索されているワード"),
+                        labels=labels,
+                        labels_size=64,
+                        title_size=24,
+                    ),
+                    horizontal_grid_lines=ft.ChartGridLines(
+                        color=ft.colors.GREY_300,
+                        width=1,
+                        dash_pattern=[3, 3]
+                    ),
+                    tooltip_bgcolor=ft.colors.with_opacity(0.8, ft.colors.GREY_300),
+                    max_y=int(max_/10) * 10 + 10,
+                    interactive=True,
+                    expand=True,
+                ),
+                width=640,
+            )
+            return ft.AlertDialog(
+                content=chart,
+                on_dismiss=lambda e: on_dissmiss_dialog(e),
+            )
+        dlg = setup_barchart_modal()
         page.open(dlg)
 
     def open_url(e):
@@ -412,7 +412,6 @@ def main(page: ft.Page):
     )
     page.scroll = "always"
 
-    dlg = setup_barchart_modal()
     # Header
     header_field = ft.Container(
         content=ft.Row(
@@ -444,7 +443,7 @@ def main(page: ft.Page):
                                     decoration=ft.TextDecoration.UNDERLINE,
                                     decoration_color=google_color['primary_blue'],
                                 ),
-                                on_click=lambda e: open_dialog(dlg),
+                                on_click=lambda e: open_dialog(e),
                             ),
                         ],
                         color=google_color['primary_blue'],
