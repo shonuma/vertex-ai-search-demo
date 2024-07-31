@@ -33,7 +33,22 @@ global_search_settings = {
 }
 
 
-def get_histories(count: int = 10) -> [str]:
+def get_histories_by_count(count: int = 100) -> []:
+    """検索回数が多い順番に履歴を返す"""
+    query = client.collection("Queries").order_by(
+        "count", direction=firestore.Query.DESCENDING
+    ).limit(global_search_settings['query_store_limit'])
+
+    result = []
+    for entry in query.stream():
+        result.append(entry.to_dict())
+        count -= 1
+        if count == 0:
+            break
+    return result
+
+
+def get_histories(count: int = 10) -> []:
     # クエリの履歴を取得する
     # isPickUp: true - 優先的に取得する
     # isUserQuery: true - ユーザのクエリ（直近 N 件）
@@ -271,4 +286,5 @@ def exec_search(
     )
 
     response = client.search(request)
+    print(response)
     return response
