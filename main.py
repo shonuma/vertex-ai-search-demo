@@ -99,7 +99,8 @@ def main(page: ft.Page):
         )
 
     def open_faq(e):
-        page.launch_url("https://storage.cloud.google.com/prd_forest_of_usecase/「事例の森」FAQ資料.pdf")
+        # faq url
+        page.launch_url("https://www.google.com")
 
     def open_dialog(e):
         def on_dissmiss_dialog(e):
