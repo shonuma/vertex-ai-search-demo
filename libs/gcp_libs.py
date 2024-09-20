@@ -5,11 +5,15 @@ import time
 from base64 import b64encode
 from typing import List
 
+import vertexai
 from google.api_core.client_options import ClientOptions
 from google.cloud import discoveryengine_v1 as discoveryengine
 from google.cloud import firestore
+from vertexai.generative_models import GenerativeModel
 
 client = firestore.Client(project=os.environ['FIRESTORE_PROJECT_ID'])
+vertexai.init(project=os.environ['FIRESTORE_PROJECT_ID'], location='us-west1')
+
 
 # プロジェクトID / ロケーション / 検索エンジンの ID を指定する
 global_gcp_settings = dict(
@@ -249,24 +253,6 @@ def exec_search(
             max_extractive_segment_count=1,
             max_extractive_answer_count=1,
         ),
-        # For information about search summaries, refer to:
-        # https://cloud.google.com/generative-ai-app-builder/docs/get-search-summaries
-        summary_spec=discoveryengine.SearchRequest.ContentSearchSpec.SummarySpec(
-            # サマリーで利用する結果の数
-            summary_result_count=global_search_settings['summary_result_count'],
-            include_citations=True,
-            ignore_adversarial_query=True,
-            ignore_non_summary_seeking_query=True,
-            model_prompt_spec=discoveryengine.SearchRequest.ContentSearchSpec.SummarySpec.ModelPromptSpec(
-                preamble=global_search_settings['preamble'],
-            ),
-            language_code="ja",
-            model_spec=discoveryengine.SearchRequest.ContentSearchSpec.SummarySpec.ModelSpec(
-                # version="stable",
-                version="gemini-1.5-flash-001/answer_gen/v1",
-            ),
-            use_semantic_chunks=True,
-        ),
     )
 
     # Refer to the `SearchRequest` reference for all supported fields:
@@ -286,5 +272,20 @@ def exec_search(
     )
 
     response = client.search(request)
-    print(response)
+    # print(response)
     return response
+
+
+def generate_text(prompt: str) -> str:
+    """プロンプトに与えた内容を生成 AI モデルで処理する"""
+    # Load the model
+    multimodal_model = GenerativeModel("gemini-1.5-flash-001")
+    # Query the model
+    response = multimodal_model.generate_content(
+        [
+            # Add an example query
+            prompt
+        ]
+    )
+    print(response)
+    return response.text

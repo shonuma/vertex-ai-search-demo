@@ -3,8 +3,8 @@ import os
 import flet as ft
 
 from libs.gcp_libs import (add_or_update_entry, clean_snippet_text,
-                           clean_summary_text, exec_search, get_histories,
-                           parse_result, get_histories_by_count)
+                           clean_summary_text, exec_search, generate_text,
+                           get_histories, get_histories_by_count, parse_result)
 
 google_color = {
     'primary_blue': '#4285F4',
@@ -261,58 +261,33 @@ def main(page: ft.Page):
                 )
             )
         else:
-            # 要約
-            spans = []
-            try:
-                txts = clean_summary_text(
-                    pd_result['meta']['summary']
-                )
-                for i in range(len(txts)):
-                    txt = txts[i]
-                    if txt.startswith('[BOLD]'):
-                        txt = txt.split('[BOLD]')[1:][0]
-                        spans.append(
-                            ft.TextSpan(
-                                txt,
-                                ft.TextStyle(weight=ft.FontWeight.BOLD),
-                            )
-                        )
-                    else:
-                        spans.append(ft.TextSpan(txt))
-                summary_card = ft.Card(
-                    content=ft.Container(
-                        bgcolor=google_color['tertiary_blue'],
-                        content=ft.Text(
-                            size=20,
-                            spans=spans,
-                        ),
-                #         content=ft.Text(
-                #             pd_result['meta']['summary'],
-                #             size=20,
-                #             # selectable=True,
-                #             # extension_set=ft.MarkdownExtensionSet.GITHUB_WEB,
-                #             # on_tap_link=lambda e: page.launch_url(e.data),
-                #         ),
-                        width=800,
-                        border_radius=5,
-                        padding=10,
-                    ),
-                    margin=ft.margin.symmetric(
-                        vertical=global_design_settings['result_vertical_margin'],
-                        horizontal=global_design_settings['result_horizontal_margin'],
-                    ),
-                )
-                stacked_controls.append(
-                    ft.ResponsiveRow(
-                        [summary_card],
-                        alignment=ft.MainAxisAlignment.CENTER
-                    )
-                )
-            except Exception as e:
-                print('ERROR{}'.format(str(e)))
+            prompt = '''
+ユーザーと親切なアシスタント間の対話、および関連する検索結果を踏まえて、アシスタントの最終的な回答をNotebookLM風の日本語で作成してください。
+検索結果のタイトルとURLは、===== で囲まれたプロンプト末尾にあります。
+回答は以下の条件を満たす必要があります。
+1. 検索結果から関連性の高い情報を最大3件活用し、**「ソースによると、〇〇〇について、下記企業の事例が挙げられます。」**という形で回答を始める。
+2. 企業それぞれ必ず1文で結果を回答する。
+3. 検索結果にない新しい情報は一切導入しない。
+4. 可能な限り検索結果から直接引用し、全く同じ表現を使用する。引用部分は「」（鉤括弧）で囲み、文末に出典を明記する。
+5. 各項目は箇条書き形式で記述する。
+6. 文頭に「-」記号を付けてください。
+7. Googleのウェブベースの日本語に沿った、カジュアルでわかりやすい文体を使用する。
+8. 企業名は太字で強調表示する。
+9. 専門用語については、可能な限り一般的な言葉で言い換えるか、括弧内に簡潔な説明を加える。
+10. 可能な限り、具体的な使用例や事例、数値データを含めて説明する。
+11. 検索結果に含まれる情報の日付に注意し、最新の情報を優先して使用する。古い情報を使用する場合は、その旨を明記する（例：2023年7月時点の情報では...）。
+12. 検索結果に複数の観点が含まれる場合は、それらを公平に扱い、バランスの取れた回答を心がける。
+13. 個人情報や機密情報が含まれている可能性がある場合は、それらを慎重に扱い、必要に応じて一般化または匿名化する。
+14. 出力にHTMLタグを含めない。
+15. 各文末で改行してください。
+16. 要約結果から推薦される次の検索単語候補を 3 つ生成し、以下のフォーマットで追記してください。
+- この検索ワードもおすすめです（検索ワード1、検索ワード2、検索ワード3）
+17. 回答の最後に、「質問の意図とずれている場合は、遠慮なく別の表現で質問してくださいね。」という一文を追加します。
 
+=====
+'''[1:-1]
             # 検索結果
-            for entry in pd_result['result']:
+            for j, entry in enumerate(pd_result['result']):
                 snippet = entry['snippet']
                 # これだと長すぎなので Trim が必要
                 # snippet = entry['extractive_segment']
@@ -339,7 +314,13 @@ def main(page: ft.Page):
                                 ft.TextStyle(weight=ft.FontWeight.BOLD),
                             )
                         )
-
+                if j < 3:
+                    prompt += '''
+                {}, {}
+'''.format(
+        entry['title'],
+        'https://storage.cloud.google.com/{}'.format(entry['link'].split('//')[1])
+    )
                 card = ft.Card(
                     content=ft.Container(
                         content=ft.Column(
@@ -386,6 +367,48 @@ def main(page: ft.Page):
                         alignment=ft.MainAxisAlignment.CENTER
                     )
                 )
+            prompt += '====='
+            summary = generate_text(prompt)
+            # stacked controls に要約を足す
+            spans = []
+            try:
+                txts = clean_summary_text(summary)
+                for i in range(len(txts)):
+                    txt = txts[i]
+                    if txt.startswith('[BOLD]'):
+                        txt = txt.split('[BOLD]')[1:][0]
+                        spans.append(
+                            ft.TextSpan(
+                                txt,
+                                ft.TextStyle(weight=ft.FontWeight.BOLD),
+                            )
+                        )
+                    else:
+                        spans.append(ft.TextSpan(txt))
+                summary_card = ft.Card(
+                    content=ft.Container(
+                        bgcolor=google_color['tertiary_blue'],
+                        content=ft.Text(
+                            size=20,
+                            spans=spans,
+                        ),
+                        width=800,
+                        border_radius=5,
+                        padding=10,
+                    ),
+                    margin=ft.margin.symmetric(
+                        vertical=global_design_settings['result_vertical_margin'],
+                        horizontal=global_design_settings['result_horizontal_margin'],
+                    ),
+                )
+                stacked_controls = [
+                    ft.ResponsiveRow(
+                        [summary_card],
+                        alignment=ft.MainAxisAlignment.CENTER
+                    )
+                ] + stacked_controls
+            except Exception as e:
+                print('ERROR{}'.format(str(e)))
             add_or_update_entry(search_query)
 
         # 再描画
