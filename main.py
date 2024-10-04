@@ -4,7 +4,8 @@ import flet as ft
 
 from libs.gcp_libs import (add_or_update_entry, clean_snippet_text,
                            clean_summary_text, exec_search, generate_text,
-                           get_histories, get_histories_by_count, parse_result)
+                           get_histories, get_histories_by_count,
+                           get_recommendations, parse_result)
 
 google_color = {
     'primary_blue': '#4285F4',
@@ -282,7 +283,7 @@ def main(page: ft.Page):
 14. 出力にHTMLタグを含めない。
 15. 各文末で改行してください。
 16. 要約結果から推薦される次の検索単語候補を 3 つ生成し、以下のフォーマットで追記してください。
-- この検索ワードもおすすめです（検索ワード1、検索ワード2、検索ワード3）
+{"recommendations": ["検索ワード1", "検索ワード2" , "検索ワード3"]}
 17. 回答の最後に、「質問の意図とずれている場合は、遠慮なく別の表現で質問してくださいね。」という一文を追加します。
 
 =====
@@ -329,7 +330,8 @@ def main(page: ft.Page):
                                 ft.ListTile(
                                     leading=ft.Icon(ft.icons.PICTURE_AS_PDF, color="red"),
                                     # 検索結果のタイトルと説明文のフォントサイズ
-                                    title=ft.Text(entry['title'], size=24),
+                                    # title=ft.Text(entry['title'], size=24),
+                                    title=ft.Text(entry['customer'], size=24),
                                     subtitle=ft.Text(spans=spans, size=16)
                                 ),
                                 ft.Row(
@@ -372,8 +374,19 @@ def main(page: ft.Page):
             summary = generate_text(prompt)
             # stacked controls に要約を足す
             spans = []
+            recommendations = []
             try:
                 txts = clean_summary_text(summary)
+                recommendation_buttons = []
+                for r in get_recommendations(summary):
+                    recommendation_buttons.append(
+                        ft.TextButton(
+                            r,
+                            data=r,
+                            on_click=click_history,
+                        )
+                    )
+
                 for i in range(len(txts)):
                     txt = txts[i]
                     if txt.startswith('[BOLD]'):
@@ -389,9 +402,17 @@ def main(page: ft.Page):
                 summary_card = ft.Card(
                     content=ft.Container(
                         bgcolor=google_color['tertiary_blue'],
-                        content=ft.Text(
-                            size=20,
-                            spans=spans,
+                        content=ft.Column(
+                            [
+                                ft.Text(
+                                    size=20,
+                                    spans=spans,
+                                ),
+                                ft.Row(
+                                    recommendation_buttons,
+                                    alignment=ft.MainAxisAlignment.CENTER,
+                                )
+                            ]
                         ),
                         width=800,
                         border_radius=5,
@@ -422,6 +443,7 @@ def main(page: ft.Page):
         button_field.disabled = False
         # 表示
         page.update()
+        # print(prompt)
 
     # Theme
     page.theme_mode = ft.ThemeMode.LIGHT

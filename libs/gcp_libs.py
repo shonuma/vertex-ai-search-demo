@@ -1,4 +1,5 @@
 import html
+import json
 import os
 import re
 import time
@@ -119,6 +120,24 @@ def add_or_update_entry(search_query: str):
     client.collection("Queries").document().set(data)
 
 
+def get_recommendations(summary_text: str) -> [str]:
+    """Gemini からのおすすめワードを解釈する"""
+    output = []
+    try:
+        lines = summary_text.split('\n')
+        tmp = {}
+        for i, s in enumerate(lines):
+            if s.startswith('{"recommendations":'):
+                tmp = json.loads(str(s))
+                break
+            else:
+                continue
+        output = tmp.get('recommendations') or []
+    except Exception as e:
+        print('ERROR in recommendations: {}'.format(e))
+    return output
+
+
 def clean_summary_text(summary_text: str) -> str:
     """太字や行頭のドットのマークアップを解釈する"""
     output = []
@@ -135,6 +154,13 @@ def clean_summary_text(summary_text: str) -> str:
             se = s.strip()
             if s.startswith("- "):
                 se = '・' + se[2:]
+            # { から始まる行は除外する
+            if s.startswith('{"recommendations":'):
+                output.append('\n')
+                continue
+            # 何も無い行は除外する
+            if s == '':
+                continue
             ss = se.split('**')
             for i, _ in enumerate(ss):
                 if i % 2 == 1:
@@ -148,6 +174,7 @@ def clean_summary_text(summary_text: str) -> str:
                 output.pop(-1)
             else:
                 break
+        print(output)
     except Exception as e:
         print('ERROR:{}'.format(str(e)))
     return output
@@ -176,7 +203,7 @@ def parse_result(
     }
     # サマリー、メタ情報
     response['meta'] = dict(
-        summary=search_response.summary.summary_text,
+        # summary=search_response.summary.summary_text,
         # summary_references=list(search_response.summary.summary_with_metadata.references),
         total_size=search_response.total_size,
         attribution_token=search_response.attribution_token,
@@ -189,11 +216,15 @@ def parse_result(
         if i == display_count:
             break
         struct_data = r.document.struct_data
+        title, customer = ('', '')
+
         if not struct_data:
             title = r.document.derived_struct_data.get(
                 'link', 'https://example.com').split('/')[-1].split('.')[0]
+            customer = 'お客様'
         else:
             title = struct_data.get('title')
+            customer = struct_data.get('customer_company_name_in_japanese')
         # global_black_list に登録された PDF の場合は検索から除外する
         if title in global_black_list:
             continue
@@ -204,6 +235,8 @@ def parse_result(
                 title=title,
                 # リンク先
                 link=r.document.derived_struct_data.get('link', 'https://example.com'),
+                # 顧客名
+                customer=customer,
                 # 抽出
                 extractive_segment=r.document.derived_struct_data["extractive_segments"][0]["content"],
                 # スニペット文字列
