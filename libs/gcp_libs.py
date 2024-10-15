@@ -31,10 +31,8 @@ global_black_list = [
 # vertex_ai_search の settings
 global_search_settings = {
     'query_store_limit': 1000,
-    'retreive_count': 30,
-    'display_count': 20,
-    'summary_result_count': 3,
-    'preamble': "ユーザーと親切なアシスタント間の対話、および関連する検索結果を踏まえて、アシスタントの最終的な回答をNotebookLM風の日本語で作成してください。回答は以下の条件を満たす必要があります。\n検索結果から関連性の高い情報を最大3件活用し、**「ソースによると、〇〇〇について、下記企業の事例が挙げられます。」**という形で回答を始める。\n企業それぞれ必ず1文で結果を回答する。\n検索結果にない新しい情報は一切導入しない。\n可能な限り検索結果から直接引用し、全く同じ表現を使用する。引用部分は「」（鉤括弧）で囲み、文末に出典を明記する。\n各項目は箇条書き形式で記述する。\n文頭に「-」記号を付けてください。\nGoogleのウェブベースの日本語に沿った、カジュアルでわかりやすい文体を使用する。\n企業名は太字で強調表示する。\n専門用語については、可能な限り一般的な言葉で言い換えるか、括弧内に簡潔な説明を加える。\n可能な限り、具体的な使用例や事例、数値データを含めて説明する。\n検索結果に含まれる情報の日付に注意し、最新の情報を優先して使用する。古い情報を使用する場合は、その旨を明記する（例：2023年7月時点の情報では...）。\n検索結果に複数の観点が含まれる場合は、それらを公平に扱い、バランスの取れた回答を心がける。\n回答の最後に、「質問の意図とずれている場合は、遠慮なく別の表現で質問してくださいね。」という一文を追加してください。\n個人情報や機密情報が含まれている可能性がある場合は、それらを慎重に扱い、必要に応じて一般化または匿名化する。\n出力にHTMLタグを含めない。\n各文末に改行コード(\\n)を挿入します。",
+    'retreive_count': 3,
+    'display_count': 3,
 }
 
 
@@ -174,7 +172,7 @@ def clean_summary_text(summary_text: str) -> str:
                 output.pop(-1)
             else:
                 break
-        print(output)
+        # print(output)
     except Exception as e:
         print('ERROR:{}'.format(str(e)))
     return output
@@ -217,6 +215,7 @@ def parse_result(
             break
         struct_data = r.document.struct_data
         title, customer = ('', '')
+        # print(r.document)
 
         if not struct_data:
             title = r.document.derived_struct_data.get(
@@ -225,6 +224,8 @@ def parse_result(
         else:
             title = struct_data.get('title')
             customer = struct_data.get('customer_company_name_in_japanese')
+            if not customer:
+                customer = struct_data.get('customer_name')
         # global_black_list に登録された PDF の場合は検索から除外する
         if title in global_black_list:
             continue
@@ -277,11 +278,6 @@ def exec_search(
     # https://cloud.google.com/python/docs/reference/discoveryengine/latest/google.cloud.discoveryengine_v1.types.SearchRequest.ContentSearchSpec
 
     content_search_spec = discoveryengine.SearchRequest.ContentSearchSpec(
-        # For information about snippets, refer to:
-        # https://cloud.google.com/generative-ai-app-builder/docs/snippets
-        snippet_spec=discoveryengine.SearchRequest.ContentSearchSpec.SnippetSpec(
-            return_snippet=True
-        ),
         extractive_content_spec=discoveryengine.SearchRequest.ContentSearchSpec.ExtractiveContentSpec(
             max_extractive_segment_count=1,
             max_extractive_answer_count=1,
@@ -296,9 +292,6 @@ def exec_search(
         # 検索結果の件数
         page_size=global_search_settings['retreive_count'],
         content_search_spec=content_search_spec,
-        query_expansion_spec=discoveryengine.SearchRequest.QueryExpansionSpec(
-            condition=discoveryengine.SearchRequest.QueryExpansionSpec.Condition.AUTO,
-        ),
         spell_correction_spec=discoveryengine.SearchRequest.SpellCorrectionSpec(
             mode=discoveryengine.SearchRequest.SpellCorrectionSpec.Mode.AUTO
         ),
@@ -320,5 +313,5 @@ def generate_text(prompt: str) -> str:
             prompt
         ]
     )
-    print(response)
+    # print(response)
     return response.text

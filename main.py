@@ -14,7 +14,7 @@ google_color = {
     'primary_green': '#34A853',
     'tertiary_blue': '#D2E3FC',
     'tertiary_green': '#CEEAD6',
-    'primary_white': '#ffffff'
+    'primary_white': '#ffffff',
 }
 
 global_design_settings = {
@@ -304,6 +304,17 @@ def main(page: ft.Page):
                 if not txts:
                     continue
                 spans = []
+
+                spans.append(
+                    ft.TextSpan(
+                        entry['title'] + "\n",
+                        ft.TextStyle(
+                            weight=ft.FontWeight.BOLD,
+                            color=google_color['primary_blue'],
+                        ),
+                    )
+                )
+
                 for i in range(len(txts)):
                     if i % 2 == 0:
                         spans.append(
@@ -380,11 +391,29 @@ def main(page: ft.Page):
                 recommendation_buttons = []
                 for r in get_recommendations(summary):
                     recommendation_buttons.append(
-                        ft.TextButton(
-                            r,
+                        ft.Container(
+                            content=ft.Text(
+                                r,
+                                color=google_color['primary_white'],
+                                text_align=ft.TextAlign.CENTER
+                            ),
+                            margin=16,
+                            padding=4,
+                            alignment=ft.alignment.center,
+                            bgcolor=google_color['primary_blue'],
+                            width=296,
+                            height=48,
+                            border_radius=32,
+                            ink=True,
+                            # 元のクエリを保持
                             data=r,
                             on_click=click_history,
                         )
+                        # ft.TextButton(
+                        #     r,
+                        #     data=r,
+                        #     on_click=click_history,
+                        # )
                     )
 
                 for i in range(len(txts)):
