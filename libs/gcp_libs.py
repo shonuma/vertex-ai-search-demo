@@ -31,8 +31,8 @@ global_black_list = [
 # vertex_ai_search の settings
 global_search_settings = {
     'query_store_limit': 1000,
-    'retreive_count': 3,
-    'display_count': 3,
+    'retreive_count': 30,
+    'display_count': 20,
 }
 
 
