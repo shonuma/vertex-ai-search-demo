@@ -6,11 +6,14 @@ import time
 from base64 import b64encode
 from typing import List
 
+import requests
 import vertexai
 from google.api_core.client_options import ClientOptions
 from google.cloud import discoveryengine_v1 as discoveryengine
 from google.cloud import firestore
 from vertexai.generative_models import GenerativeModel
+
+from libs.gcp_token import get_token, retreive_token
 
 client = firestore.Client(project=os.environ['FIRESTORE_PROJECT_ID'])
 vertexai.init(project=os.environ['FIRESTORE_PROJECT_ID'], location='us-west1')
@@ -191,114 +194,118 @@ def clean_snippet_text(snippet_text: str) -> list:
     return re.split(r'<\/*b>', tmp)
 
 
-def parse_result(
-    search_response: List[discoveryengine.SearchResponse],
-    display_count=global_search_settings['display_count'],
+def exec_search_by_curl(
+    search_query: str,
 ) -> dict:
+    # needed valuables
+    project_id = global_gcp_settings['project_id']
+    location = global_gcp_settings['location']
+    engine_id = global_gcp_settings['engine_id']
+
+    # retreive token
+    retreive_token()
+    token = get_token()
+
+    url = "https://discoveryengine.googleapis.com/v1alpha/projects/{project_id}/locations/{locations}/collections/default_collection/engines/{engine_id}/servingConfigs/default_search:search".format(
+        project_id=project_id,
+        locations=location,
+        engine_id=engine_id,
+    )
+
+    headers = {
+        "Authorization": "Bearer {token}".format(token=token),
+        "Content-Type": "application/json"
+    }
+    data = {
+        "query": search_query,
+        "pageSize": global_search_settings['retreive_count'],
+        "spellCorrectionSpec": {"mode": "AUTO"},
+        "contentSearchSpec": {
+            "snippetSpec": {"returnSnippet": True},
+            "extractiveContentSpec": {"maxExtractiveAnswerCount": 1}
+        }
+    }
+
+    response = requests.post(url, headers=headers, json=data)
+    return json.loads(response.text)
+
+
+def parse_result_by_curl(
+    search_response: dict,
+    display_count=global_search_settings['display_count'],
+):
     response = {
         'meta': {},
         'result': []
     }
+
     # サマリー、メタ情報
     response['meta'] = dict(
-        # summary=search_response.summary.summary_text,
-        # summary_references=list(search_response.summary.summary_with_metadata.references),
-        total_size=search_response.total_size,
-        attribution_token=search_response.attribution_token,
-        next_page_token=search_response.next_page_token,
+        total_size=search_response.get('total_size', 0),
+        attribution_token=search_response.get('attribution_token', ''),
+        next_page_token=search_response.get('next_page_token', '')
     )
 
     # 検索結果
     i = 0
-    for r in search_response.results:
+    for r in search_response['results']:
         if i == display_count:
             break
-        struct_data = r.document.struct_data
-        title, customer = ('', '')
-        # print(r.document)
+        source = ''
+        struct_data = r['document'].get('structData')
+        derived_struct_data = r['document']['derivedStructData']
+        title, customer, link = ('', '', '')
 
         if not struct_data:
-            title = r.document.derived_struct_data.get(
-                'link', 'https://example.com').split('/')[-1].split('.')[0]
-            customer = 'お客様'
+            # ドライブのデータ
+            title = "Google Drive のデータ"
+            customer = r['document']['derivedStructData']['title']
+            link = r['document']['derivedStructData']['link']
+            source = 'GOOGLE_DRIVE'
         else:
+            # BigQuery からのデータ
             title = struct_data.get('title')
             customer = struct_data.get('customer_company_name_in_japanese')
             if not customer:
                 customer = struct_data.get('customer_name')
+            gs_url = derived_struct_data.get('link')
+            link = 'https://storage.cloud.google.com/{}'.format(gs_url.split('//')[1])
+            source = 'CLOUD_STORAGE'
+
         # global_black_list に登録された PDF の場合は検索から除外する
         if title in global_black_list:
             continue
+        
+        extractive_answers = ""
+        if derived_struct_data.get('extractive_answers'):
+            extractive_answers = derived_struct_data["extractive_answers"][0]["content"]
+
+        snippet = ""
+        snippet_status = False
+        if derived_struct_data.get('snippets'):
+            snippet = derived_struct_data["snippets"][0]["snippet"]
+            snippet_status = derived_struct_data["snippets"][0]["snippet_status"]
 
         response['result'].append(
             dict(
                 # タイトル
                 title=title,
                 # リンク先
-                link=r.document.derived_struct_data.get('link', 'https://example.com'),
+                link=link or 'https://www.google.com/',
                 # 顧客名
                 customer=customer,
                 # 抽出
-                extractive_segment=r.document.derived_struct_data["extractive_segments"][0]["content"],
+                extractive_segment=extractive_answers,
                 # スニペット文字列
-                snippet=r.document.derived_struct_data["snippets"][0]["snippet"],
+                snippet=snippet,
                 # スニペットを取得できたかどうか
-                snippet_status=r.document.derived_struct_data["snippets"][0]["snippet_status"],
+                snippet_status=snippet_status,
+                # source
+                source=source,
             )
         )
         i += 1
 
-    return response
-
-
-def exec_search(
-    search_query: str,
-) -> List[discoveryengine.SearchResponse]:
-    # needed valuables
-    project_id = global_gcp_settings['project_id']
-    location = global_gcp_settings['location']
-    engine_id = global_gcp_settings['engine_id']
-
-    #  For more information, refer to:
-    # https://cloud.google.com/generative-ai-app-builder/docs/locations#specify_a_multi-region_for_your_data_store
-    client_options = (
-        ClientOptions(api_endpoint=f"{location}-discoveryengine.googleapis.com")
-        if location != "global"
-        else None
-    )
-
-    # Create a client
-    client = discoveryengine.SearchServiceClient(client_options=client_options)
-
-    # The full resource name of the search app serving config
-    serving_config = f"projects/{project_id}/locations/{location}/collections/default_collection/engines/{engine_id}/servingConfigs/default_config"
-
-    # Optional: Configuration options for search
-    # Refer to the `ContentSearchSpec` reference for all supported fields:
-    # https://cloud.google.com/python/docs/reference/discoveryengine/latest/google.cloud.discoveryengine_v1.types.SearchRequest.ContentSearchSpec
-
-    content_search_spec = discoveryengine.SearchRequest.ContentSearchSpec(
-        extractive_content_spec=discoveryengine.SearchRequest.ContentSearchSpec.ExtractiveContentSpec(
-            max_extractive_segment_count=1,
-            max_extractive_answer_count=1,
-        ),
-    )
-
-    # Refer to the `SearchRequest` reference for all supported fields:
-    # https://cloud.google.com/python/docs/reference/discoveryengine/latest/google.cloud.discoveryengine_v1.types.SearchRequest
-    request = discoveryengine.SearchRequest(
-        serving_config=serving_config,
-        query=search_query,
-        # 検索結果の件数
-        page_size=global_search_settings['retreive_count'],
-        content_search_spec=content_search_spec,
-        spell_correction_spec=discoveryengine.SearchRequest.SpellCorrectionSpec(
-            mode=discoveryengine.SearchRequest.SpellCorrectionSpec.Mode.AUTO
-        ),
-    )
-
-    response = client.search(request)
-    # print(response)
     return response
 
 
@@ -313,5 +320,5 @@ def generate_text(prompt: str) -> str:
             prompt
         ]
     )
-    # print(response)
+    print(response)
     return response.text

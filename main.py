@@ -3,9 +3,10 @@ import os
 import flet as ft
 
 from libs.gcp_libs import (add_or_update_entry, clean_snippet_text,
-                           clean_summary_text, exec_search, generate_text,
-                           get_histories, get_histories_by_count,
-                           get_recommendations, parse_result)
+                           clean_summary_text, exec_search_by_curl,
+                           generate_text, get_histories,
+                           get_histories_by_count, get_recommendations,
+                           parse_result_by_curl)
 
 google_color = {
     'primary_blue': '#4285F4',
@@ -182,9 +183,7 @@ def main(page: ft.Page):
         page.open(dlg)
 
     def open_url(e):
-        gs_url = e.control.data
-        url = 'https://storage.cloud.google.com/{}'.format(gs_url.split('//')[1])
-        page.launch_url(url)
+        page.launch_url(e.control.data)
 
     def text_field_on_submit(e):
         add_clicked(e)
@@ -243,10 +242,10 @@ def main(page: ft.Page):
         page.update()
         # 検索実行
         search_query = text_field.value
-        search_response = exec_search(search_query=search_query)
+        search_response = exec_search_by_curl(search_query=search_query)
         pd_result = {}
         try:
-            pd_result = parse_result(search_response)
+            pd_result = parse_result_by_curl(search_response)
         except Exception as e:
             pd_result = {}
             print(e)
@@ -282,11 +281,13 @@ def main(page: ft.Page):
 13. 個人情報や機密情報が含まれている可能性がある場合は、それらを慎重に扱い、必要に応じて一般化または匿名化する。
 14. 出力にHTMLタグを含めない。
 15. 各文末で改行してください。
-16. 要約結果から推薦される次の検索単語候補を 3 つ生成し、以下のフォーマットで追記してください。
+16. 検索結果が1件以上存在する場合、要約結果から推薦される次の検索単語候補を 3 つ生成し、以下のフォーマットで追記してください。
 {"recommendations": ["検索ワード1", "検索ワード2" , "検索ワード3"]}
-17. 回答の最後に、「質問の意図とずれている場合は、遠慮なく別の表現で質問してくださいね。」という一文を追加します。
+17. 検索結果が1件以上存在する場合、回答の最後に、「質問の意図とずれている場合は、遠慮なく別の表現で質問してくださいね。」という一文を追加します。
+18. 検索結果が0件の場合は「該当する結果を取得できませんでした、別の表現で質問してみてください」と回答してください。
 
 =====
+
 '''[1:-1]
             # 検索結果
             for j, entry in enumerate(pd_result['result']):
@@ -332,14 +333,19 @@ def main(page: ft.Page):
                 {}, {}
 '''.format(
         entry['title'],
-        'https://storage.cloud.google.com/{}'.format(entry['link'].split('//')[1])
+        entry['link'],
     )
+                icon = ft.icons.PICTURE_AS_PDF
+                color = 'red'
+                if entry.get('source') == 'GOOGLE_DRIVE':
+                    icon = ft.icons.ADD_TO_DRIVE
+                    color = 'blue'
                 card = ft.Card(
                     content=ft.Container(
                         content=ft.Column(
                             [
                                 ft.ListTile(
-                                    leading=ft.Icon(ft.icons.PICTURE_AS_PDF, color="red"),
+                                    leading=ft.Icon(icon, color=color),
                                     # 検索結果のタイトルと説明文のフォントサイズ
                                     # title=ft.Text(entry['title'], size=24),
                                     title=ft.Text(entry['customer'], size=24),
@@ -381,7 +387,7 @@ def main(page: ft.Page):
                         alignment=ft.MainAxisAlignment.CENTER
                     )
                 )
-            prompt += '====='
+            prompt += '\n====='
             summary = generate_text(prompt)
             # stacked controls に要約を足す
             spans = []
