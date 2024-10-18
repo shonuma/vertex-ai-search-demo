@@ -102,7 +102,9 @@ def main(page: ft.Page):
 
     def open_faq(e):
         # faq url
-        page.launch_url("https://www.google.com")
+        page.launch_url(
+            os.environ.get('FAQ_URL', 'https://www.google.com/')
+        )
 
     def open_dialog(e):
         def on_dissmiss_dialog(e):
