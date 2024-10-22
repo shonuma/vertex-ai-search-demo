@@ -13,6 +13,10 @@ ENV VERTEX_AI_SEARCH_ENGINE_ID=<change_it>
 ENV FLET_WEB_USE_COLOR_EMOJI=1
 # FAQ の URL
 ENV FAQ_URL=https://www.google.com/
+# このアカウントの権限でドライブのデータを取得します
+ENV SUBJECT=<change_it>
+# サーバーのサービスアカウントの情報
+ENV SERVICE_ACCOUNT_INFO=<change_it>
 
 ENV APP_HOME=/app
 WORKDIR $APP_HOME
@@ -21,4 +25,3 @@ COPY . ./
 RUN bash setup.sh
 RUN pip install --no-cache-dir -r requirements.txt
 CMD exec bash run.sh
-

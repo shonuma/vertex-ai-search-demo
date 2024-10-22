@@ -163,3 +163,4 @@ cython_debug/
 py3/
 .env.sh
 .DS_Store
+_Dockerfile
