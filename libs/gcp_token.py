@@ -26,8 +26,6 @@ def retreive_token():
     )
     request = google.auth.transport.requests.Request()
     credentials.refresh(request)
-    print(credentials.__dict__)
-    print(credentials.token)
     token = credentials.token
     return credentials.token
 
