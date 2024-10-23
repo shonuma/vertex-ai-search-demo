@@ -6,7 +6,7 @@ from libs.gcp_libs import (add_or_update_entry, clean_snippet_text,
                            clean_summary_text, exec_search_by_curl,
                            generate_text, get_histories,
                            get_histories_by_count, get_recommendations,
-                           parse_result_by_curl)
+                           parse_result_by_curl, prompt_base)
 
 google_color = {
     'primary_blue': '#4285F4',
@@ -22,7 +22,6 @@ global_design_settings = {
     'result_horizontal_margin': 64,
     'result_vertical_margin': 5,
 }
-
 
 def main(page: ft.Page):
     def remove_all():
@@ -244,7 +243,9 @@ def main(page: ft.Page):
         page.update()
         # 検索実行
         search_query = text_field.value
-        search_response = exec_search_by_curl(search_query=search_query)
+        search_response = exec_search_by_curl(
+            search_query=search_query,
+            )
         pd_result = {}
         try:
             pd_result = parse_result_by_curl(search_response)
@@ -264,34 +265,7 @@ def main(page: ft.Page):
                 )
             )
         else:
-            prompt = '''
-ユーザーと親切なアシスタント間の対話、および関連する検索結果を踏まえて、アシスタントの最終的な回答をNotebookLM風の日本語で作成してください。
-検索結果のタイトルとURLは、===== で囲まれたプロンプト末尾にあります。
-回答は以下の条件を満たす必要があります。
-1. 検索結果から関連性の高い情報を最大3件活用し、**「ソースによると、〇〇〇について、下記企業の事例が挙げられます。」**という形で回答を始める。
-2. 企業それぞれ必ず1文で結果を回答する。
-3. 検索結果にない新しい情報は一切導入しない。
-4. 可能な限り検索結果から直接引用し、全く同じ表現を使用する。引用部分は「」（鉤括弧）で囲み、文末に出典を明記する。
-5. 各項目は箇条書き形式で記述する。
-6. 文頭に「-」記号を付けてください。
-7. Googleのウェブベースの日本語に沿った、カジュアルでわかりやすい文体を使用する。
-8. 企業名は太字で強調表示する。
-9. 専門用語については、可能な限り一般的な言葉で言い換えるか、括弧内に簡潔な説明を加える。
-10. 可能な限り、具体的な使用例や事例、数値データを含めて説明する。
-11. 検索結果に含まれる情報の日付に注意し、最新の情報を優先して使用する。古い情報を使用する場合は、その旨を明記する（例：2023年7月時点の情報では...）。
-12. 検索結果に複数の観点が含まれる場合は、それらを公平に扱い、バランスの取れた回答を心がける。
-13. 個人情報や機密情報が含まれている可能性がある場合は、それらを慎重に扱い、必要に応じて一般化または匿名化する。
-14. 出力にHTMLタグを含めない。
-15. 各文末で改行してください。
-16. 検索結果が1件以上存在する場合、要約結果から推薦される次の検索単語候補を 3 つ生成し、以下のフォーマットで追記してください。
-{"recommendations": ["検索ワード1", "検索ワード2" , "検索ワード3"]}
-17. 検索結果が1件以上存在する場合、回答の最後に、「質問の意図とずれている場合は、遠慮なく別の表現で質問してくださいね。」という一文を追加します。
-18. 検索結果が0件の場合は「該当する結果を取得できませんでした、別の表現で質問してみてください」と回答してください。
-19. 回答に Google ドライブまたは Cloud Storage の URL を含めないでください。
-
-=====
-
-'''[1:-1]
+            prompt = prompt_base()
             # 検索結果
             for j, entry in enumerate(pd_result['result']):
                 snippet = entry['snippet']
@@ -335,7 +309,7 @@ def main(page: ft.Page):
                     prompt += '''
                 {}, {}
 '''.format(
-        entry['title'],
+        entry['customer'] if entry['source'] == 'GOOGLE_DRIVE' else entry['title'],
         entry['link'],
     )
                 icon = ft.icons.PICTURE_AS_PDF
@@ -483,7 +457,7 @@ def main(page: ft.Page):
         page.update()
         # print(prompt)
 
-    # Theme
+    # Main
     page.theme_mode = ft.ThemeMode.LIGHT
     page.bgcolor = google_color['primary_white']
     page.title = "事例の森"

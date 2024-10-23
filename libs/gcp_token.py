@@ -10,7 +10,7 @@ from google.oauth2 import service_account
 
 token = None
 
-def retreive_token():
+def _retreive_token():
     global token
 
     # credentials, project_id = google.auth.default()
@@ -27,9 +27,10 @@ def retreive_token():
     request = google.auth.transport.requests.Request()
     credentials.refresh(request)
     token = credentials.token
-    return credentials.token
 
 
 def get_token():
     global token
+    if token is None:
+        _retreive_token()
     return token

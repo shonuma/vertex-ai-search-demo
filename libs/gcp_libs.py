@@ -11,9 +11,9 @@ import vertexai
 from google.api_core.client_options import ClientOptions
 from google.cloud import discoveryengine_v1 as discoveryengine
 from google.cloud import firestore
-from vertexai.generative_models import GenerativeModel
+from vertexai.generative_models import GenerationConfig, GenerativeModel
 
-from libs.gcp_token import get_token, retreive_token
+from libs.gcp_token import get_token
 
 client = firestore.Client(project=os.environ['FIRESTORE_PROJECT_ID'])
 vertexai.init(project=os.environ['FIRESTORE_PROJECT_ID'], location='us-west1')
@@ -203,7 +203,6 @@ def exec_search_by_curl(
     engine_id = global_gcp_settings['engine_id']
 
     # retreive token
-    retreive_token()
     token = get_token()
 
     url = "https://discoveryengine.googleapis.com/v1alpha/projects/{project_id}/locations/{locations}/collections/default_collection/engines/{engine_id}/servingConfigs/default_search:search".format(
@@ -227,6 +226,7 @@ def exec_search_by_curl(
     }
 
     response = requests.post(url, headers=headers, json=data)
+    print(response.text)
     return json.loads(response.text)
 
 
@@ -312,13 +312,59 @@ def parse_result_by_curl(
 def generate_text(prompt: str) -> str:
     """プロンプトに与えた内容を生成 AI モデルで処理する"""
     # Load the model
-    multimodal_model = GenerativeModel("gemini-1.5-flash-001")
+    multimodal_model = GenerativeModel("gemini-1.5-pro-002")
+    # config
+    config = GenerationConfig(
+        temperature=0,
+        top_p=1,
+        top_k=32,
+        max_output_tokens=2048,
+    )
     # Query the model
     response = multimodal_model.generate_content(
         [
             # Add an example query
             prompt
-        ]
+        ],
+        generation_config=config
     )
-    print(response)
+    print(prompt)
+    # print(response)
+    print(response.text)
     return response.text
+
+
+def prompt_base():
+    """利用するプロンプト"""
+    return '''ユーザーと親切なアシスタント間の対話、および関連する検索結果を踏まえて、アシスタントの最終的な回答をNotebookLM風の日本語で作成してください。
+検索結果を基に、以下の条件を満たす回答を生成してください。
+回答は以下の条件を満たす必要があります。
+1. 検索結果から関連性の高い情報を最大3件活用し、**「検索結果によると、〇〇〇について、下記企業の事例が挙げられます。」**という形で回答を始め、〇〇〇には、検索クエリを参考にした適切な単語を挿入する。
+2. 企業それぞれ必ず1文で結果を回答する。
+3. 検索結果にない新しい情報は一切導入しない。
+4. 可能な限り検索結果から直接引用し、全く同じ表現を使用する。引用部分は「」（鉤括弧）で囲み、文末に出典（検索結果の URL を含めない）を明記する。出典部は（）（丸括弧）で囲みます。
+5. 各項目は箇条書き形式で記述する。
+6. 文頭に「-」記号を付ける。
+7. Googleのウェブベースの日本語に沿った、カジュアルでわかりやすい文体を使用する。
+8. 企業名は太字で強調表示する。
+9. 専門用語については、可能な限り一般的な言葉で言い換えるか、括弧内に簡潔な説明を加える。
+10. 可能な限り、具体的な使用例や事例、数値データを含めて説明する。
+11. 検索結果に含まれる情報の日付に注意し、最新の情報を優先して使用する。古い情報を使用する場合は、その旨を明記する（例：2023年7月時点の情報では...）。
+12. 検索結果に複数の観点が含まれる場合は、それらを公平に扱い、バランスの取れた回答を心がける。
+13. 個人情報や機密情報が含まれている可能性がある場合は、それらを慎重に扱い、必要に応じて一般化または匿名化する。
+14. 出力にHTMLタグを含めない。
+15. 各文末で改行すること。
+16. 検索結果が1件以上存在する場合、要約結果から推薦される次の検索単語候補を 3 つ生成し、以下のフォーマットで追記する。
+{"recommendations": ["検索ワード1", "検索ワード2" , "検索ワード3"]}
+17. 検索結果が1件以上存在する場合、回答の最後に、「質問の意図とずれている場合は、遠慮なく別の表現で質問してくださいね。」という一文を追加する。
+18. 検索結果が0件の場合は「該当する結果を取得できませんでした、別の表現で質問してみてください」と回答する。
+19. 検索結果に含まれる法人名については正しいものを利用する。
+20. 検索結果に含まれる法人名が明確でない場合は省略を行い検索結果の概要を説明したうえで、「詳細は検索結果を確認してください」で回答を終えること。
+21. 要約結果から Google Drive のURL (https://drive. で始まるURL)、及び Google Cloud Storage のURL (https://storage.) で始まる URL を削除する。
+22. 検索結果に事例が含まれない場合はファイルのタイトル（拡張子を除外）を太字表記し、内容から短い要約を作成し、「詳細は検索結果を確認してください」で回答を終えること。
+
+なお、検索結果のタイトルとURLは、===== で囲まれたプロンプト末尾にある。
+
+=====
+
+'''[1:-1]
