@@ -31,6 +31,6 @@ def _retreive_token():
 
 def get_token():
     global token
-    if token is None:
-        _retreive_token()
+    # if token is None:
+    _retreive_token()
     return token
